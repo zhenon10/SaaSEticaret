@@ -1,0 +1,15 @@
+{
+  "name": "saas-eticaret",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/storefront",
+    "apps/admin"
+  ],
+  "scripts": {
+    "dev:storefront": "npm run dev --workspace=apps/storefront",
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "build:storefront": "npm run build --workspace=apps/storefront",
+    "build:admin": "npm run build --workspace=apps/admin"
+  }
+}

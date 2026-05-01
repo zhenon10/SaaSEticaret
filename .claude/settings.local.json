@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(tree /d /l \"c:\\\\Users\\\\zhe\\\\Desktop\\\\SaaSEticaret\" -L 4)",
+      "PowerShell(tree /d \"c:\\\\Users\\\\zhe\\\\Desktop\\\\SaaSEticaret\" 2>$null)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\zhe\\\\Desktop\\\\SaaSEticaret\" -Recurse -Force)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet tool *)",
+      "Bash(findstr /i \"ef\")",
+      "Bash(dir \"c:\\\\Users\\\\zhe\\\\Desktop\\\\SaaSEticaret\\\\services\\\\core-api\\\\CoreApi\\\\Infrastructure\\\\Persistence\\\\Migrations\" /B)",
+      "Bash(dir \"c:\\\\Users\\\\zhe\\\\Desktop\\\\SaaSEticaret\")",
+      "Bash(where node *)",
+      "Read(//usr/local/bin/**)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "PowerShell(Start-Process cmd -ArgumentList \"/k cd /d C:\\\\Users\\\\zhe\\\\Desktop\\\\SaaSEticaret\\\\apps\\\\storefront && npm run dev\")",
+      "PowerShell(Start-Process cmd -ArgumentList \"/k cd /d C:\\\\Users\\\\zhe\\\\Desktop\\\\SaaSEticaret\\\\apps\\\\admin && npm run dev\")",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5052\" -TimeoutSec 3 -ErrorAction Stop; \"ONLINE: $\\($r.StatusCode\\)\" } catch { \"OFFLINE veya hata: $_\" })"
+    ]
+  }
+}

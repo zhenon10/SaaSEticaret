@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/apps/" />
+  <Folder Name="/apps/admin/">
+    <Project Path="apps/admin/Admin/Admin.csproj" />
+  </Folder>
+  <Folder Name="/apps/gateway/">
+    <Project Path="apps/gateway/Gateway/Gateway.csproj" />
+  </Folder>
+  <Folder Name="/apps/storefront/">
+    <Project Path="apps/storefront/Storefront/Storefront.csproj" />
+  </Folder>
+  <Folder Name="/services/" />
+  <Folder Name="/services/core-api/">
+    <Project Path="services/core-api/CoreApi/CoreApi.csproj" />
+  </Folder>
+</Solution>
