@@ -10,13 +10,13 @@ public static class DatabaseSeeder
 {
     private static readonly Dictionary<string, string> DefaultSettings = new()
     {
+        ["store.name"]                 = "mağaza",
+        ["store.color.primary"]        = "#f97316",
+        ["hero.image"]                 = "",
         ["hero.badge"]                 = "Yeni Sezon Koleksiyonu",
         ["hero.title"]                 = "Trendleri Yakala",
         ["hero.subtitle"]              = "Binlerce ürün, uygun fiyatlarla kapınıza kadar",
-        ["hero.cta1.text"]             = "Alışverişe Başla",
-        ["hero.cta1.href"]             = "/products",
-        ["hero.cta2.text"]             = "Öne Çıkanlar",
-        ["hero.cta2.href"]             = "/products?featured=1",
+        ["hero.buttons"]               = """[{"text":"Alışverişe Başla","href":"/products","variant":"solid"},{"text":"Öne Çıkanlar","href":"/products?featured=1","variant":"outline"}]""",
         ["announcement.enabled"]       = "true",
         ["announcement.text"]          = "🚀 Ücretsiz kargo 150 TL ve üzeri siparişlerde geçerlidir!",
         ["campaign.shipping.title"]    = "Ücretsiz Kargo",
@@ -26,6 +26,13 @@ public static class DatabaseSeeder
         ["campaign.payment.title"]     = "Güvenli Ödeme",
         ["campaign.payment.subtitle"]  = "SSL ile şifrelenmiş ödeme",
         ["nav.links"]                  = """[{"label":"Yeni Gelenler","href":"/products"},{"label":"Öne Çıkanlar","href":"/products?featured=1"},{"label":"İndirimli Ürünler","href":"/products"},{"label":"Kadın Giyim","href":"/products"},{"label":"Erkek Giyim","href":"/products"},{"label":"Çocuk","href":"/products"},{"label":"Aksesuar","href":"/products"}]""",
+        ["footer.description"]         = "Türkiye'nin güvenilir online alışveriş platformu. Binlerce ürün, uygun fiyat.",
+        ["footer.contact.email"]       = "destek@magaza.com",
+        ["footer.contact.phone"]       = "0850 000 00 00",
+        ["footer.contact.hours"]       = "Hafta içi 09:00 – 18:00",
+        ["footer.copyright"]           = "Tüm hakları saklıdır.",
+        ["footer.columns"]             = """[{"title":"Alışveriş","links":[{"label":"Tüm Ürünler","href":"/products"},{"label":"Öne Çıkanlar","href":"/products?featured=1"},{"label":"Yeni Gelenler","href":"/products"},{"label":"İndirimli Ürünler","href":"/products"}]},{"title":"Hesabım","links":[{"label":"Giriş Yap","href":"/login"},{"label":"Siparişlerim","href":"/account/orders"},{"label":"Sepetim","href":"/cart"}]}]""",
+        ["footer.legal"]               = """[{"label":"Gizlilik Politikası","href":"/privacy"},{"label":"Kullanım Koşulları","href":"/terms"},{"label":"KVKK","href":"/kvkk"}]""",
     };
 
     public static async Task SeedAsync(ApplicationDbContext context)

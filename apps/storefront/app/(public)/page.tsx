@@ -34,13 +34,23 @@ export default async function HomePage() {
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : newProducts;
 
   // Hero values
+  const heroImage   = s(settings, 'hero.image', '');
   const heroBadge   = s(settings, 'hero.badge',    'Yeni Sezon Koleksiyonu');
   const heroTitle   = s(settings, 'hero.title',    'Trendleri Yakala');
   const heroSub     = s(settings, 'hero.subtitle', 'Binlerce ürün, uygun fiyatlarla kapınıza kadar');
-  const cta1Text    = s(settings, 'hero.cta1.text', 'Alışverişe Başla');
-  const cta1Href    = s(settings, 'hero.cta1.href', '/products');
-  const cta2Text    = s(settings, 'hero.cta2.text', 'Öne Çıkanlar');
-  const cta2Href    = s(settings, 'hero.cta2.href', '/products?featured=1');
+
+  type HeroButton = { text: string; href: string; variant: 'solid' | 'outline' };
+  let heroButtons: HeroButton[] = [
+    { text: 'Alışverişe Başla', href: '/products',           variant: 'solid'   },
+    { text: 'Öne Çıkanlar',    href: '/products?featured=1', variant: 'outline' },
+  ];
+  try {
+    const raw = settings['hero.buttons'];
+    if (raw) {
+      const parsed = JSON.parse(raw) as HeroButton[];
+      if (Array.isArray(parsed) && parsed.length > 0) heroButtons = parsed;
+    }
+  } catch { /* keep defaults */ }
 
   // Campaign cards
   const campaigns = [
@@ -67,8 +77,12 @@ export default async function HomePage() {
   return (
     <div className="bg-gray-50">
       {/* ── Hero Banner ────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-primary to-orange-400">
-        <div className="container mx-auto px-4 py-16 text-center">
+      <section
+        className={`relative overflow-hidden ${heroImage ? '' : 'bg-gradient-to-r from-primary to-orange-400'}`}
+        style={heroImage ? { backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+      >
+        {heroImage && <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-orange-500/75" />}
+        <div className="relative container mx-auto px-4 py-16 text-center">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-orange-100">
             {heroBadge}
           </p>
@@ -78,25 +92,30 @@ export default async function HomePage() {
           <p className="mb-8 text-lg text-orange-100 opacity-90">
             {heroSub}
           </p>
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href={cta1Href}
-              className="rounded-full bg-white px-8 py-3 text-sm font-bold text-primary shadow transition-transform hover:scale-105"
-            >
-              {cta1Text}
-            </Link>
-            {cta2Text && (
-              <Link
-                href={cta2Href}
-                className="rounded-full border-2 border-white px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
-              >
-                {cta2Text}
-              </Link>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {heroButtons.map((btn, i) =>
+              btn.variant === 'outline' ? (
+                <Link
+                  key={i}
+                  href={btn.href}
+                  className="rounded-full border-2 border-white px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
+                >
+                  {btn.text}
+                </Link>
+              ) : (
+                <Link
+                  key={i}
+                  href={btn.href}
+                  className="rounded-full bg-white px-8 py-3 text-sm font-bold text-primary shadow transition-transform hover:scale-105"
+                >
+                  {btn.text}
+                </Link>
+              )
             )}
           </div>
         </div>
-        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />
-        <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-white/5" />
+        {!heroImage && <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />}
+        {!heroImage && <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-white/5" />}
       </section>
 
       {/* ── Category Quick Links ────────────────────────── */}

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil } from 'lucide-react';
 import DeleteCategoryButton from '@/components/DeleteCategoryButton';
 import type { Category } from '@saas/api-client';
 
@@ -26,6 +26,12 @@ function CategoryRow({ category, level = 0 }: { category: Category; level?: numb
         </td>
         <td className="px-4 py-3 text-right">
           <div className="flex justify-end gap-2">
+            <Link
+              href={`/categories/${category.id}/edit`}
+              className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-muted transition-colors"
+            >
+              <Pencil className="h-3 w-3" /> Düzenle
+            </Link>
             <DeleteCategoryButton categoryId={category.id} categoryName={category.name} />
           </div>
         </td>

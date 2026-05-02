@@ -15,8 +15,10 @@ export default async function Header() {
   const isLoggedIn = !!cookieStore.get('st_at')?.value;
 
   let navLinks = DEFAULT_NAV_LINKS;
+  let storeName = 'mağaza';
   try {
     const settings = await api.settings.getAll();
+    if (settings['store.name']) storeName = settings['store.name'];
     const raw = settings['nav.links'];
     if (raw) {
       const parsed = JSON.parse(raw) as { label: string; href: string }[];
@@ -36,7 +38,7 @@ export default async function Header() {
             href="/"
             className="shrink-0 text-2xl font-extrabold tracking-tight text-primary"
           >
-            mağaza
+            {storeName}
           </Link>
 
           {/* Search */}

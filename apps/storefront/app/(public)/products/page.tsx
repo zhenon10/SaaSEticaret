@@ -3,9 +3,66 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
+import type { Category } from '@saas/api-client';
 
 export const metadata: Metadata = { title: 'Ürünler' };
 export const revalidate = 60;
+
+function isOrHasActive(cat: Category, activeId?: string): boolean {
+  if (!activeId) return false;
+  if (cat.id === activeId) return true;
+  return (cat.children ?? []).some((c) => isOrHasActive(c, activeId));
+}
+
+function CategorySidebarItem({
+  cat,
+  activeId,
+  level = 0,
+}: {
+  cat: Category;
+  activeId?: string;
+  level?: number;
+}) {
+  const isActive = cat.id === activeId;
+  const expanded = isOrHasActive(cat, activeId);
+  const hasChildren = (cat.children?.length ?? 0) > 0;
+  const pl = 16 + level * 14;
+
+  return (
+    <>
+      <li>
+        <Link
+          href={`/products?category=${cat.id}`}
+          style={{ paddingLeft: pl }}
+          className={`flex items-center justify-between pr-4 py-2 text-sm transition-colors hover:bg-orange-50 hover:text-primary ${
+            isActive
+              ? 'font-semibold text-primary border-l-2 border-primary bg-orange-50'
+              : 'text-gray-700'
+          }`}
+        >
+          <span className="flex items-center gap-1">
+            {level > 0 && <span className="text-gray-300 text-xs">└</span>}
+            {cat.name}
+          </span>
+          <span className="flex shrink-0 items-center gap-1">
+            {cat.productCount != null && (
+              <span className="text-xs text-gray-400">({cat.productCount})</span>
+            )}
+            {hasChildren && (
+              <ChevronDown
+                className={`h-3 w-3 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+              />
+            )}
+          </span>
+        </Link>
+      </li>
+      {hasChildren && expanded &&
+        cat.children!.map((child) => (
+          <CategorySidebarItem key={child.id} cat={child} activeId={activeId} level={level + 1} />
+        ))}
+    </>
+  );
+}
 
 interface Props {
   searchParams: Promise<{
@@ -22,10 +79,10 @@ export default async function ProductsPage({ searchParams }: Props) {
   const page = Number(params.page ?? 1);
 
   let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
-  let categories: { id: string; name: string; slug: string; productCount?: number }[] = [];
+  let categoryTree: Category[] = [];
 
   try {
-    [result, categories] = await Promise.all([
+    [result, categoryTree] = await Promise.all([
       api.catalog.getProducts({
         search: params.search,
         categoryId: params.category,
@@ -35,13 +92,22 @@ export default async function ProductsPage({ searchParams }: Props) {
         page,
         pageSize: 16,
       }),
-      api.catalog.getCategories(),
+      api.catalog.getCategoryTree(),
     ]);
   } catch {
     // graceful degradation
   }
 
-  const activeCategory = categories.find((c) => c.id === params.category);
+  function findCategory(cats: Category[], id?: string): Category | undefined {
+    if (!id) return undefined;
+    for (const c of cats) {
+      if (c.id === id) return c;
+      const found = findCategory(c.children ?? [], id);
+      if (found) return found;
+    }
+  }
+
+  const activeCategory = findCategory(categoryTree, params.category);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -66,22 +132,8 @@ export default async function ProductsPage({ searchParams }: Props) {
                     <span className="text-xs text-gray-400">({result.totalCount})</span>
                   </Link>
                 </li>
-                {categories.map((cat) => (
-                  <li key={cat.id}>
-                    <Link
-                      href={`/products?category=${cat.id}`}
-                      className={`flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-orange-50 hover:text-primary ${
-                        params.category === cat.id
-                          ? 'font-semibold text-primary border-l-2 border-primary bg-orange-50'
-                          : 'text-gray-700'
-                      }`}
-                    >
-                      {cat.name}
-                      {cat.productCount != null && (
-                        <span className="text-xs text-gray-400">({cat.productCount})</span>
-                      )}
-                    </Link>
-                  </li>
+                {categoryTree.map((cat) => (
+                  <CategorySidebarItem key={cat.id} cat={cat} activeId={params.category} />
                 ))}
               </ul>
             </div>
