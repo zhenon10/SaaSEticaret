@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Ürünler' };
 export const revalidate = 60;
@@ -11,6 +13,7 @@ interface Props {
     category?: string;
     page?: string;
     inStock?: string;
+    featured?: string;
   }>;
 }
 
@@ -19,7 +22,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const page = Number(params.page ?? 1);
 
   let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
-  let categories: { id: string; name: string; slug: string }[] = [];
+  let categories: { id: string; name: string; slug: string; productCount?: number }[] = [];
 
   try {
     [result, categories] = await Promise.all([
@@ -27,9 +30,10 @@ export default async function ProductsPage({ searchParams }: Props) {
         search: params.search,
         categoryId: params.category,
         inStockOnly: params.inStock === '1',
+        isFeatured: params.featured === '1' ? true : undefined,
         isActive: true,
         page,
-        pageSize: 12,
+        pageSize: 16,
       }),
       api.catalog.getCategories(),
     ]);
@@ -37,97 +41,182 @@ export default async function ProductsPage({ searchParams }: Props) {
     // graceful degradation
   }
 
+  const activeCategory = categories.find((c) => c.id === params.category);
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-6 text-3xl font-bold">Ürünler</h1>
+    <div className="bg-gray-50 min-h-screen">
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex gap-5">
 
-      <div className="flex gap-8">
-        {/* Sidebar Filters */}
-        <aside className="hidden w-56 shrink-0 lg:block">
-          <div className="rounded-lg border p-4">
-            <h3 className="mb-3 font-semibold">Kategoriler</h3>
-            <ul className="space-y-1">
-              <li>
-                <a
-                  href="/products"
-                  className="block rounded px-2 py-1 text-sm hover:bg-muted"
-                >
-                  Tümü
-                </a>
-              </li>
-              {categories.map((cat) => (
-                <li key={cat.id}>
-                  <a
-                    href={`/products?category=${cat.id}`}
-                    className="block rounded px-2 py-1 text-sm hover:bg-muted"
+          {/* ── Sidebar ─────────────────────────────────── */}
+          <aside className="hidden w-52 shrink-0 lg:block">
+            <div className="rounded-sm border border-gray-200 bg-white">
+              <div className="border-b border-gray-100 px-4 py-3">
+                <h3 className="font-semibold text-gray-800">Kategori</h3>
+              </div>
+              <ul className="py-2">
+                <li>
+                  <Link
+                    href="/products"
+                    className={`flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-orange-50 hover:text-primary ${
+                      !params.category ? 'font-semibold text-primary' : 'text-gray-700'
+                    }`}
                   >
-                    {cat.name}
-                  </a>
+                    Tüm kategoriler
+                    <span className="text-xs text-gray-400">({result.totalCount})</span>
+                  </Link>
                 </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-
-        {/* Products Grid */}
-        <div className="flex-1">
-          {/* Search */}
-          <form className="mb-6 flex gap-2">
-            <input
-              name="search"
-              defaultValue={params.search}
-              placeholder="Ürün ara..."
-              className="flex-1 rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <button
-              type="submit"
-              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
-            >
-              Ara
-            </button>
-          </form>
-
-          {result.items.length === 0 ? (
-            <div className="flex h-64 items-center justify-center text-muted-foreground">
-              Ürün bulunamadı.
+                {categories.map((cat) => (
+                  <li key={cat.id}>
+                    <Link
+                      href={`/products?category=${cat.id}`}
+                      className={`flex items-center justify-between px-4 py-2 text-sm transition-colors hover:bg-orange-50 hover:text-primary ${
+                        params.category === cat.id
+                          ? 'font-semibold text-primary border-l-2 border-primary bg-orange-50'
+                          : 'text-gray-700'
+                      }`}
+                    >
+                      {cat.name}
+                      {cat.productCount != null && (
+                        <span className="text-xs text-gray-400">({cat.productCount})</span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          ) : (
-            <>
-              <p className="mb-4 text-sm text-muted-foreground">
+
+            {/* Stock filter */}
+            <div className="mt-4 rounded-sm border border-gray-200 bg-white">
+              <div className="border-b border-gray-100 px-4 py-3">
+                <h3 className="font-semibold text-gray-800">Stok Durumu</h3>
+              </div>
+              <ul className="py-2">
+                <li>
+                  <Link
+                    href={params.category ? `/products?category=${params.category}` : '/products'}
+                    className={`flex items-center px-4 py-2 text-sm transition-colors hover:text-primary ${
+                      params.inStock !== '1' ? 'font-semibold text-primary' : 'text-gray-700'
+                    }`}
+                  >
+                    Tüm Ürünler
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href={`/products?${params.category ? `category=${params.category}&` : ''}inStock=1`}
+                    className={`flex items-center px-4 py-2 text-sm transition-colors hover:text-primary ${
+                      params.inStock === '1' ? 'font-semibold text-primary' : 'text-gray-700'
+                    }`}
+                  >
+                    Stokta Olanlar
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </aside>
+
+          {/* ── Main content ────────────────────────────── */}
+          <div className="flex-1 min-w-0">
+            {/* Search bar + filter row */}
+            <div className="mb-4 flex items-center gap-3">
+              <form className="flex flex-1 items-center gap-2 rounded-sm border border-gray-200 bg-white px-3 py-2">
+                <input
+                  name="search"
+                  defaultValue={params.search}
+                  placeholder="Bu kategoride ara..."
+                  className="flex-1 text-sm outline-none placeholder:text-gray-400"
+                />
+                <button
+                  type="submit"
+                  className="rounded bg-primary px-3 py-1 text-xs font-semibold text-white hover:bg-primary/90"
+                >
+                  Ara
+                </button>
+              </form>
+              <div className="flex items-center gap-1 rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">
+                <SlidersHorizontal className="h-4 w-4" />
+                <span className="hidden sm:inline">Filtrele</span>
+              </div>
+            </div>
+
+            {/* Breadcrumb + count */}
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Link href="/products" className="hover:text-primary">Tüm Ürünler</Link>
+                {activeCategory && (
+                  <>
+                    <span>/</span>
+                    <span className="font-medium text-gray-800">{activeCategory.name}</span>
+                  </>
+                )}
+                {params.search && (
+                  <>
+                    <span>/</span>
+                    <span className="font-medium text-gray-800">"{params.search}"</span>
+                  </>
+                )}
+              </div>
+              <span className="text-sm text-gray-500">
                 {result.totalCount} ürün bulundu
-              </p>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              </span>
+            </div>
+
+            {/* Product grid */}
+            {result.items.length === 0 ? (
+              <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-sm border border-gray-200 bg-white text-gray-400">
+                <span className="text-4xl">🔍</span>
+                <p className="text-sm">Ürün bulunamadı.</p>
+                <Link href="/products" className="text-sm text-primary hover:underline">
+                  Tüm ürünleri gör
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                 {result.items.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
+            )}
 
-              {/* Pagination */}
-              {result.totalPages > 1 && (
-                <div className="mt-8 flex justify-center gap-2">
-                  {result.hasPrev && (
+            {/* Pagination */}
+            {result.totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-1">
+                {result.hasPrev && (
+                  <a
+                    href={`/products?page=${page - 1}${params.category ? `&category=${params.category}` : ''}${params.search ? `&search=${params.search}` : ''}`}
+                    className="flex h-9 items-center rounded border border-gray-200 bg-white px-4 text-sm hover:border-primary hover:text-primary"
+                  >
+                    ← Önceki
+                  </a>
+                )}
+                {Array.from({ length: Math.min(result.totalPages, 7) }, (_, i) => {
+                  const p = i + 1;
+                  return (
                     <a
-                      href={`/products?page=${page - 1}`}
-                      className="rounded-md border px-4 py-2 text-sm hover:bg-muted"
+                      key={p}
+                      href={`/products?page=${p}${params.category ? `&category=${params.category}` : ''}${params.search ? `&search=${params.search}` : ''}`}
+                      className={`flex h-9 w-9 items-center justify-center rounded border text-sm transition-colors ${
+                        p === page
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-gray-200 bg-white hover:border-primary hover:text-primary'
+                      }`}
                     >
-                      ← Önceki
+                      {p}
                     </a>
-                  )}
-                  <span className="flex items-center px-4 text-sm text-muted-foreground">
-                    {page} / {result.totalPages}
-                  </span>
-                  {result.hasNext && (
-                    <a
-                      href={`/products?page=${page + 1}`}
-                      className="rounded-md border px-4 py-2 text-sm hover:bg-muted"
-                    >
-                      Sonraki →
-                    </a>
-                  )}
-                </div>
-              )}
-            </>
-          )}
+                  );
+                })}
+                {result.hasNext && (
+                  <a
+                    href={`/products?page=${page + 1}${params.category ? `&category=${params.category}` : ''}${params.search ? `&search=${params.search}` : ''}`}
+                    className="flex h-9 items-center rounded border border-gray-200 bg-white px-4 text-sm hover:border-primary hover:text-primary"
+                  >
+                    Sonraki →
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
