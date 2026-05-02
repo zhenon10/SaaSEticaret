@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { ApiError } from '@saas/api-client';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface Props {
   initialSettings: Record<string, string>;
@@ -36,11 +37,38 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
+type NavLink = { label: string; href: string };
+
+function parseNavLinks(raw: string | undefined): NavLink[] {
+  try {
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as NavLink[];
+  } catch { /* ignore */ }
+  return [];
+}
+
 export default function SettingsForm({ initialSettings }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initialSettings);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  const navLinks = parseNavLinks(values['nav.links']);
+
+  const setNavLinks = (links: NavLink[]) => {
+    setValues((prev) => ({ ...prev, 'nav.links': JSON.stringify(links) }));
+    setSuccess(false);
+  };
+
+  const updateNavLink = (i: number, field: keyof NavLink, val: string) => {
+    const next = navLinks.map((l, idx) => idx === i ? { ...l, [field]: val } : l);
+    setNavLinks(next);
+  };
+
+  const addNavLink = () => setNavLinks([...navLinks, { label: '', href: '/products' }]);
+
+  const removeNavLink = (i: number) => setNavLinks(navLinks.filter((_, idx) => idx !== i));
 
   const set = (key: string, val: string) => {
     setValues((prev) => ({ ...prev, [key]: val }));
@@ -191,6 +219,46 @@ export default function SettingsForm({ initialSettings }: Props) {
             </Field>
           </div>
         ))}
+      </Section>
+
+      {/* ── Nav Links ───────────────────────────────────── */}
+      <Section
+        title="🔗 Navigasyon Linkleri"
+        description="Header'daki kategori navigasyon çubuğunun linkleri. Sıralama ekrandaki sıraya göre belirlenir."
+      >
+        <div className="space-y-2">
+          {navLinks.map((link, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                className={inputClass}
+                value={link.label}
+                onChange={(e) => updateNavLink(i, 'label', e.target.value)}
+                placeholder="Link Adı"
+              />
+              <input
+                className={inputClass}
+                value={link.href}
+                onChange={(e) => updateNavLink(i, 'href', e.target.value)}
+                placeholder="/products"
+              />
+              <button
+                type="button"
+                onClick={() => removeNavLink(i)}
+                className="shrink-0 text-gray-400 hover:text-destructive transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={addNavLink}
+          className="flex items-center gap-1.5 rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Link Ekle
+        </button>
       </Section>
 
       {/* ── Save ────────────────────────────────────────── */}

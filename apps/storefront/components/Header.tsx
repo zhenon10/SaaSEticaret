@@ -2,20 +2,29 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { Heart, ShoppingBag, User, Menu } from 'lucide-react';
 import SearchBar from './SearchBar';
+import { api } from '@/lib/api';
 
-const NAV_LINKS = [
+const DEFAULT_NAV_LINKS = [
   { label: 'Yeni Gelenler', href: '/products' },
   { label: 'Öne Çıkanlar', href: '/products?featured=1' },
   { label: 'İndirimli Ürünler', href: '/products' },
-  { label: 'Kadın Giyim', href: '/products' },
-  { label: 'Erkek Giyim', href: '/products' },
-  { label: 'Çocuk', href: '/products' },
-  { label: 'Aksesuar', href: '/products' },
 ];
 
 export default async function Header() {
   const cookieStore = await cookies();
   const isLoggedIn = !!cookieStore.get('st_at')?.value;
+
+  let navLinks = DEFAULT_NAV_LINKS;
+  try {
+    const settings = await api.settings.getAll();
+    const raw = settings['nav.links'];
+    if (raw) {
+      const parsed = JSON.parse(raw) as { label: string; href: string }[];
+      if (Array.isArray(parsed) && parsed.length > 0) navLinks = parsed;
+    }
+  } catch {
+    // fall back to defaults
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-white shadow-sm">
@@ -83,7 +92,7 @@ export default async function Header() {
 
           {/* Nav links */}
           <nav className="flex items-stretch overflow-x-auto scrollbar-hide">
-            {NAV_LINKS.map((item) => (
+            {navLinks.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}

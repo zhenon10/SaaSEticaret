@@ -1,22 +1,10 @@
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
-import {
-  ShirtIcon, Footprints, Watch, Baby, Sparkles, Home, Dumbbell, Laptop,
-} from 'lucide-react';
+import { Tag } from 'lucide-react';
+import type { Category } from '@saas/api-client';
 
 export const revalidate = 60;
-
-const CATEGORY_ICONS = [
-  { label: 'Kadın',    icon: ShirtIcon,  href: '/products' },
-  { label: 'Erkek',    icon: ShirtIcon,  href: '/products' },
-  { label: 'Ayakkabı', icon: Footprints, href: '/products' },
-  { label: 'Aksesuar', icon: Watch,      href: '/products' },
-  { label: 'Çocuk',    icon: Baby,       href: '/products' },
-  { label: 'Kozmetik', icon: Sparkles,   href: '/products' },
-  { label: 'Ev & Yaşam', icon: Home,    href: '/products' },
-  { label: 'Spor',     icon: Dumbbell,   href: '/products' },
-];
 
 function s(settings: Record<string, string>, key: string, fallback = '') {
   return settings[key] ?? fallback;
@@ -26,16 +14,19 @@ export default async function HomePage() {
   let featuredProducts: any[] = [];
   let newProducts: any[] = [];
   let settings: Record<string, string> = {};
+  let categories: Category[] = [];
 
   try {
-    const [featured, newest, siteSettings] = await Promise.all([
+    const [featured, newest, siteSettings, cats] = await Promise.all([
       api.catalog.getProducts({ isFeatured: true, isActive: true, pageSize: 8 }),
       api.catalog.getProducts({ isActive: true, pageSize: 8 }),
       api.settings.getAll(),
+      api.catalog.getCategories(),
     ]);
     featuredProducts = featured.items;
     newProducts = newest.items;
     settings = siteSettings;
+    categories = cats.filter((c) => c.isActive);
   } catch {
     // API unavailable during build — graceful degradation
   }
@@ -109,24 +100,26 @@ export default async function HomePage() {
       </section>
 
       {/* ── Category Quick Links ────────────────────────── */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
-          {CATEGORY_ICONS.map(({ label, icon: Icon, href }) => (
-            <Link
-              key={label}
-              href={href}
-              className="group flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-white p-3 text-center shadow-sm transition-all hover:border-primary hover:shadow-md"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
-                <Icon className="h-5 w-5" />
-              </div>
-              <span className="text-xs font-medium text-gray-700 group-hover:text-primary">
-                {label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {categories.length > 0 && (
+        <section className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
+            {categories.slice(0, 8).map((cat) => (
+              <Link
+                key={cat.id}
+                href={`/products?category=${cat.slug}`}
+                className="group flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-white p-3 text-center shadow-sm transition-all hover:border-primary hover:shadow-md"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                  <Tag className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium text-gray-700 group-hover:text-primary">
+                  {cat.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Campaign Cards ──────────────────────────────── */}
       <section className="container mx-auto px-4 pb-4">

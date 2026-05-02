@@ -25,6 +25,7 @@ public static class DatabaseSeeder
         ["campaign.return.subtitle"]   = "30 gün içinde ücretsiz iade",
         ["campaign.payment.title"]     = "Güvenli Ödeme",
         ["campaign.payment.subtitle"]  = "SSL ile şifrelenmiş ödeme",
+        ["nav.links"]                  = """[{"label":"Yeni Gelenler","href":"/products"},{"label":"Öne Çıkanlar","href":"/products?featured=1"},{"label":"İndirimli Ürünler","href":"/products"},{"label":"Kadın Giyim","href":"/products"},{"label":"Erkek Giyim","href":"/products"},{"label":"Çocuk","href":"/products"},{"label":"Aksesuar","href":"/products"}]""",
     };
 
     public static async Task SeedAsync(ApplicationDbContext context)

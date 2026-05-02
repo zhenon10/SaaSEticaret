@@ -13,30 +13,42 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-const schema = z.object({
-  email: z.string().email('Geçerli bir e-posta girin'),
-  password: z.string().min(1, 'Şifre gerekli'),
-});
+const schema = z
+  .object({
+    email: z.string().email('Geçerli bir e-posta girin'),
+    password: z.string().min(8, 'Şifre en az 8 karakter olmalıdır'),
+    confirmPassword: z.string().min(1, 'Şifre tekrarı gerekli'),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: 'Şifreler eşleşmiyor',
+    path: ['confirmPassword'],
+  });
 
 type FormValues = z.infer<typeof schema>;
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState('');
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormValues) => {
     setError('');
     try {
-      await api.auth.login(data);
+      await api.auth.register(data);
       router.push('/');
       router.refresh();
     } catch (e) {
       if (e instanceof ApiError) {
-        setError(e.status === 401 ? 'E-posta veya şifre hatalı.' : e.message);
+        if (e.status === 409) {
+          setError('Bu e-posta adresi zaten kullanılıyor.');
+        } else {
+          setError(e.message || 'Kayıt başarısız oldu.');
+        }
       } else {
         setError('Beklenmedik bir hata oluştu.');
       }
@@ -47,7 +59,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Giriş Yap</CardTitle>
+          <CardTitle className="text-2xl text-center">Kayıt Ol</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -59,20 +71,28 @@ export default function LoginPage() {
 
             <div className="space-y-1">
               <Label htmlFor="password">Şifre</Label>
-              <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
+              <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="confirmPassword">Şifre Tekrar</Label>
+              <Input id="confirmPassword" type="password" autoComplete="new-password" {...register('confirmPassword')} />
+              {errors.confirmPassword && (
+                <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+              )}
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+              {isSubmitting ? 'Kaydediliyor...' : 'Kayıt Ol'}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Hesabın yok mu?{' '}
-              <Link href="/register" className="font-medium text-primary hover:underline">
-                Kayıt Ol
+              Zaten hesabın var mı?{' '}
+              <Link href="/login" className="font-medium text-primary hover:underline">
+                Giriş Yap
               </Link>
             </p>
           </form>

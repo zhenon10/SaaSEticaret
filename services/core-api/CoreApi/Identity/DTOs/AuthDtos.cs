@@ -2,6 +2,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CoreApi.Identity.DTOs;
 
+public class RegisterRequest
+{
+    [Required]
+    [EmailAddress]
+    [MaxLength(255)]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(8, ErrorMessage = "Şifre en az 8 karakter olmalıdır.")]
+    public string Password { get; set; } = string.Empty;
+
+    [Required]
+    [Compare(nameof(Password), ErrorMessage = "Şifreler eşleşmiyor.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
 public class LoginRequest
 {
     [Required]

@@ -34,6 +34,40 @@ public class AuthController : ControllerBase
         _env            = env;
     }
 
+    /// <summary>POST /auth/register</summary>
+    [HttpPost("register")]
+    [EnableRateLimiting("login")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { error = "Invalid request", details = ModelState });
+
+        var result = await _authService.RegisterAsync(request, HttpContext);
+
+        if (!result.Success)
+        {
+            if (result.Error?.Contains("zaten kullanılıyor") == true)
+                return Conflict(new { error = result.Error });
+            return BadRequest(new { error = result.Error });
+        }
+
+        if (IsMobileClient())
+        {
+            return Ok(new LoginResponse
+            {
+                AccessToken  = result.AccessToken!,
+                RefreshToken = result.RefreshToken!,
+                User         = result.User!
+            });
+        }
+
+        SetAuthCookies(result.AccessToken!, result.RefreshToken!);
+        return Ok(new WebLoginResponse { User = result.User! });
+    }
+
     /// <summary>POST /auth/login</summary>
     /// <remarks>
     /// Web clients  → tokens stored in HttpOnly cookies (ad_at/ad_rt or st_at/st_rt).

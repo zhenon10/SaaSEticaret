@@ -12,6 +12,7 @@ namespace CoreApi.Identity.Services;
 
 public interface IAuthService
 {
+    Task<AuthResult> RegisterAsync(RegisterRequest request, HttpContext httpContext);
     Task<AuthResult> LoginAsync(LoginRequest request, HttpContext httpContext);
     Task<AuthResult> RefreshAsync(RefreshRequest request, HttpContext httpContext);
     Task<AuthResult> LogoutAsync(string? refreshToken, HttpContext httpContext);
@@ -41,6 +42,65 @@ public class AuthService : IAuthService
         _logger         = logger;
         _passwordHasher = passwordHasher;
         _jwtSettings    = jwtSettings.Value;
+    }
+
+    public async Task<AuthResult> RegisterAsync(RegisterRequest request, HttpContext httpContext)
+    {
+        if (!_tenantContext.IsSet)
+            return Fail("Tenant context not found");
+
+        var tenantId = _tenantContext.TenantId;
+
+        var emailExists = await _context.Users
+            .AnyAsync(u => u.TenantId == tenantId && u.Email == request.Email);
+
+        if (emailExists)
+            return Fail("Bu e-posta adresi zaten kullanılıyor.");
+
+        var customerRole = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == "Customer" && r.TenantId == null);
+
+        if (customerRole == null)
+            return Fail("Sistem yapılandırma hatası.");
+
+        var user = new User
+        {
+            Id        = Guid.NewGuid(),
+            TenantId  = tenantId,
+            Email     = request.Email,
+            IsActive  = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+
+        _context.Users.Add(user);
+        _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = customerRole.Id });
+
+        var sessionId = Guid.NewGuid();
+        var (accessToken, refreshToken) = _tokenService.GenerateTokenPair(user.Id, tenantId, "Customer", sessionId);
+
+        _context.RefreshTokens.Add(new RefreshToken
+        {
+            Id        = Guid.NewGuid(),
+            TenantId  = tenantId,
+            UserId    = user.Id,
+            Token     = HashToken(refreshToken),
+            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
+            CreatedAt = DateTime.UtcNow,
+            IpAddress = httpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("New user registered: {UserId} in tenant {TenantId}", user.Id, tenantId);
+
+        return new AuthResult
+        {
+            Success      = true,
+            AccessToken  = accessToken,
+            RefreshToken = refreshToken,
+            User         = BuildUserInfo(user, "Customer")
+        };
     }
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, HttpContext httpContext)
