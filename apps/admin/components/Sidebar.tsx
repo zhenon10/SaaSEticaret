@@ -3,17 +3,18 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Package, Tags, ShoppingBag, Warehouse, LogOut,
+  Package, Tags, ShoppingBag, Warehouse, Settings, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 const nav = [
-  { href: '/products',   label: 'Ürünler',     icon: Package },
-  { href: '/categories', label: 'Kategoriler', icon: Tags },
-  { href: '/orders',     label: 'Siparişler',  icon: ShoppingBag },
-  { href: '/inventory',  label: 'Stok',        icon: Warehouse },
+  { href: '/products',   label: 'Ürünler',       icon: Package },
+  { href: '/categories', label: 'Kategoriler',   icon: Tags },
+  { href: '/orders',     label: 'Siparişler',    icon: ShoppingBag },
+  { href: '/inventory',  label: 'Stok',          icon: Warehouse },
+  { href: '/settings',   label: 'Site Ayarları', icon: Settings },
 ];
 
 export default function Sidebar() {

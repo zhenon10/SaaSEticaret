@@ -29,6 +29,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<Inventory>    Inventories   => Set<Inventory>();
 
+    // ── Site Settings ────────────────────────────────────────────────────────
+    public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
+
     // ── Orders ───────────────────────────────────────────────────────────────
     public DbSet<Cart>      Carts      => Set<Cart>();
     public DbSet<CartItem>  CartItems  => Set<CartItem>();
@@ -261,6 +264,21 @@ public class ApplicationDbContext : DbContext
             // One-to-one; product_id is unique
             entity.HasIndex(e => e.ProductId).IsUnique();
             entity.HasIndex(e => e.TenantId);
+        });
+
+        // ==================== SITE SETTINGS MODULE ====================
+
+        modelBuilder.Entity<SiteSetting>(entity =>
+        {
+            entity.ToTable("site_settings");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+            entity.Property(e => e.Key).HasColumnName("key").HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Value).HasColumnName("value").HasColumnType("text");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasIndex(e => new { e.TenantId, e.Key }).IsUnique();
         });
 
         // ==================== ORDER MODULE ====================

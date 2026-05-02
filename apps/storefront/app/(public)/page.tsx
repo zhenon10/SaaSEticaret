@@ -2,45 +2,76 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
 import {
-  ShirtIcon,
-  Footprints,
-  Watch,
-  Baby,
-  Sparkles,
-  Home,
-  Dumbbell,
-  Laptop,
+  ShirtIcon, Footprints, Watch, Baby, Sparkles, Home, Dumbbell, Laptop,
 } from 'lucide-react';
 
 export const revalidate = 60;
 
 const CATEGORY_ICONS = [
-  { label: 'Kadın', icon: ShirtIcon, href: '/products' },
-  { label: 'Erkek', icon: ShirtIcon, href: '/products' },
+  { label: 'Kadın',    icon: ShirtIcon,  href: '/products' },
+  { label: 'Erkek',    icon: ShirtIcon,  href: '/products' },
   { label: 'Ayakkabı', icon: Footprints, href: '/products' },
-  { label: 'Aksesuar', icon: Watch, href: '/products' },
-  { label: 'Çocuk', icon: Baby, href: '/products' },
-  { label: 'Kozmetik', icon: Sparkles, href: '/products' },
-  { label: 'Ev & Yaşam', icon: Home, href: '/products' },
-  { label: 'Spor', icon: Dumbbell, href: '/products' },
+  { label: 'Aksesuar', icon: Watch,      href: '/products' },
+  { label: 'Çocuk',    icon: Baby,       href: '/products' },
+  { label: 'Kozmetik', icon: Sparkles,   href: '/products' },
+  { label: 'Ev & Yaşam', icon: Home,    href: '/products' },
+  { label: 'Spor',     icon: Dumbbell,   href: '/products' },
 ];
+
+function s(settings: Record<string, string>, key: string, fallback = '') {
+  return settings[key] ?? fallback;
+}
 
 export default async function HomePage() {
   let featuredProducts: any[] = [];
   let newProducts: any[] = [];
+  let settings: Record<string, string> = {};
 
   try {
-    const [featured, newest] = await Promise.all([
+    const [featured, newest, siteSettings] = await Promise.all([
       api.catalog.getProducts({ isFeatured: true, isActive: true, pageSize: 8 }),
       api.catalog.getProducts({ isActive: true, pageSize: 8 }),
+      api.settings.getAll(),
     ]);
     featuredProducts = featured.items;
     newProducts = newest.items;
+    settings = siteSettings;
   } catch {
     // API unavailable during build — graceful degradation
   }
 
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : newProducts;
+
+  // Hero values
+  const heroBadge   = s(settings, 'hero.badge',    'Yeni Sezon Koleksiyonu');
+  const heroTitle   = s(settings, 'hero.title',    'Trendleri Yakala');
+  const heroSub     = s(settings, 'hero.subtitle', 'Binlerce ürün, uygun fiyatlarla kapınıza kadar');
+  const cta1Text    = s(settings, 'hero.cta1.text', 'Alışverişe Başla');
+  const cta1Href    = s(settings, 'hero.cta1.href', '/products');
+  const cta2Text    = s(settings, 'hero.cta2.text', 'Öne Çıkanlar');
+  const cta2Href    = s(settings, 'hero.cta2.href', '/products?featured=1');
+
+  // Campaign cards
+  const campaigns = [
+    {
+      icon: '🚚',
+      bg: 'bg-blue-50', text: 'text-blue-700',
+      title:    s(settings, 'campaign.shipping.title',   'Ücretsiz Kargo'),
+      subtitle: s(settings, 'campaign.shipping.subtitle', '150 TL ve üzeri siparişlerde'),
+    },
+    {
+      icon: '↩️',
+      bg: 'bg-green-50', text: 'text-green-700',
+      title:    s(settings, 'campaign.return.title',   'Kolay İade'),
+      subtitle: s(settings, 'campaign.return.subtitle', '30 gün içinde ücretsiz iade'),
+    },
+    {
+      icon: '🔒',
+      bg: 'bg-purple-50', text: 'text-purple-700',
+      title:    s(settings, 'campaign.payment.title',   'Güvenli Ödeme'),
+      subtitle: s(settings, 'campaign.payment.subtitle', 'SSL ile şifrelenmiş ödeme'),
+    },
+  ];
 
   return (
     <div className="bg-gray-50">
@@ -48,30 +79,31 @@ export default async function HomePage() {
       <section className="relative overflow-hidden bg-gradient-to-r from-primary to-orange-400">
         <div className="container mx-auto px-4 py-16 text-center">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-orange-100">
-            Yeni Sezon Koleksiyonu
+            {heroBadge}
           </p>
           <h1 className="mb-4 text-4xl font-extrabold text-white md:text-5xl">
-            Trendleri Yakalay
+            {heroTitle}
           </h1>
           <p className="mb-8 text-lg text-orange-100 opacity-90">
-            Binlerce ürün, uygun fiyatlarla kapınıza kadar
+            {heroSub}
           </p>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/products"
+              href={cta1Href}
               className="rounded-full bg-white px-8 py-3 text-sm font-bold text-primary shadow transition-transform hover:scale-105"
             >
-              Alışverişe Başla
+              {cta1Text}
             </Link>
-            <Link
-              href="/products?featured=1"
-              className="rounded-full border-2 border-white px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
-            >
-              Öne Çıkanlar
-            </Link>
+            {cta2Text && (
+              <Link
+                href={cta2Href}
+                className="rounded-full border-2 border-white px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
+              >
+                {cta2Text}
+              </Link>
+            )}
           </div>
         </div>
-        {/* Decorative circles */}
         <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />
         <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-white/5" />
       </section>
@@ -83,7 +115,7 @@ export default async function HomePage() {
             <Link
               key={label}
               href={href}
-              className="group flex flex-col items-center gap-2 rounded-lg bg-white p-3 text-center shadow-sm border border-gray-100 transition-all hover:border-primary hover:shadow-md"
+              className="group flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-white p-3 text-center shadow-sm transition-all hover:border-primary hover:shadow-md"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                 <Icon className="h-5 w-5" />
@@ -96,19 +128,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Campaign Banner ─────────────────────────────── */}
+      {/* ── Campaign Cards ──────────────────────────────── */}
       <section className="container mx-auto px-4 pb-4">
         <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            { title: 'Ücretsiz Kargo', sub: '150 TL ve üzeri siparişlerde', bg: 'bg-blue-50', text: 'text-blue-700', icon: '🚚' },
-            { title: 'Kolay İade', sub: '30 gün içinde ücretsiz iade', bg: 'bg-green-50', text: 'text-green-700', icon: '↩️' },
-            { title: 'Güvenli Ödeme', sub: 'SSL ile şifrelenmiş ödeme', bg: 'bg-purple-50', text: 'text-purple-700', icon: '🔒' },
-          ].map(({ title, sub, bg, text, icon }) => (
+          {campaigns.map(({ icon, bg, text, title, subtitle }) => (
             <div key={title} className={`flex items-center gap-3 rounded-lg ${bg} px-4 py-3`}>
               <span className="text-2xl">{icon}</span>
               <div>
                 <p className={`text-sm font-bold ${text}`}>{title}</p>
-                <p className="text-xs text-gray-500">{sub}</p>
+                <p className="text-xs text-gray-500">{subtitle}</p>
               </div>
             </div>
           ))}
