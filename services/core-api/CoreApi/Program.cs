@@ -165,6 +165,15 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 app.UseRateLimiter();
 
+// Ensure wwwroot/uploads exists before serving static files
+var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+Directory.CreateDirectory(Path.Combine(wwwroot, "uploads"));
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwroot),
+    RequestPath = ""
+});
+
 // CRITICAL ORDER: tenant context must be populated before authentication so that
 // _tenantContext.IsSet is true when AuthService validates tenant claims in controllers.
 app.UseTenantResolution();

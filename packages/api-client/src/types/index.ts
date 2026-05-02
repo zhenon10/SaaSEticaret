@@ -101,7 +101,7 @@ export interface ProductListItem {
   isFeatured: boolean;
   categoryId?: string;
   categoryName?: string;
-  primaryImage?: string;
+  primaryImageUrl?: string;
   isInStock: boolean;
   availableQuantity: number;
   createdAt: string;
@@ -129,7 +129,7 @@ export interface CreateProductRequest {
   isActive?: boolean;
   isFeatured?: boolean;
   categoryId?: string;
-  initialQuantity?: number;
+  initialStock?: number;
   lowStockThreshold?: number;
 }
 

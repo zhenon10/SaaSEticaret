@@ -19,6 +19,19 @@ export function createSaaSClient(baseUrl: string, tenantSlug?: string) {
     catalog: createCatalogService(client),
     cart:    createCartService(client),
     orders:  createOrderService(client),
+    uploadImage: async (file: File): Promise<string> => {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`${baseUrl}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {},
+        body: form,
+      });
+      if (!res.ok) throw new Error('Yükleme başarısız.');
+      const data = await res.json() as { url: string };
+      return data.url;
+    },
   };
 }
 

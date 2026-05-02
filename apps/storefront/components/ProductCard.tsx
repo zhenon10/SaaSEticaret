@@ -10,9 +10,9 @@ export default function ProductCard({ product }: Props) {
   return (
     <Link href={`/products/${product.slug}`} className="group block rounded-xl border overflow-hidden hover:shadow-md transition-shadow">
       <div className="relative aspect-square bg-muted">
-        {product.primaryImage ? (
+        {product.primaryImageUrl ? (
           <Image
-            src={product.primaryImage}
+            src={product.primaryImageUrl}
             alt={product.name}
             fill
             className="object-cover transition-transform group-hover:scale-105"

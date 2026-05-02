@@ -4,6 +4,7 @@ import type {
   CreateCategoryRequest,
   UpdateCategoryRequest,
   Product,
+  ProductImage,
   ProductListItem,
   ProductQueryFilter,
   CreateProductRequest,
@@ -60,7 +61,7 @@ export function createCatalogService(client: ApiClient) {
 
     // Images
     addImage: (productId: string, data: { url: string; altText?: string; isPrimary?: boolean }) =>
-      client.post<void>(`/catalog/products/${productId}/images`, data),
+      client.post<ProductImage>(`/catalog/products/${productId}/images`, data),
 
     removeImage: (productId: string, imageId: string) =>
       client.delete<void>(`/catalog/products/${productId}/images/${imageId}`),

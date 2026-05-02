@@ -32,7 +32,7 @@ export function createApiClient(baseUrl: string, tenantSlug?: string) {
       ...rest,
       credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}),
         ...(headers as Record<string, string>),
       },
