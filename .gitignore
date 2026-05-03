@@ -17,6 +17,11 @@ dist/
 .env.local
 .env*.local
 
+# Secrets — local connection strings etc.
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
 # OS
 .DS_Store
 Thumbs.db
