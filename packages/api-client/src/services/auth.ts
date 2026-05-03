@@ -1,5 +1,5 @@
 import type { ApiClient } from '../client';
-import type { RegisterRequest, LoginRequest, WebLoginResponse, UserInfo, RefreshRequest } from '../types';
+import type { RegisterRequest, LoginRequest, WebLoginResponse, UserInfo, RefreshRequest, UpdateProfileRequest } from '../types';
 
 export function createAuthService(client: ApiClient) {
   return {
@@ -17,5 +17,8 @@ export function createAuthService(client: ApiClient) {
 
     me: () =>
       client.get<UserInfo>('/auth/me'),
+
+    updateProfile: (data: UpdateProfileRequest) =>
+      client.put<UserInfo>('/auth/me', data),
   };
 }

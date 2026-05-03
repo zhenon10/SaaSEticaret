@@ -17,6 +17,7 @@ public interface IAuthService
     Task<AuthResult> RefreshAsync(RefreshRequest request, HttpContext httpContext);
     Task<AuthResult> LogoutAsync(string? refreshToken, HttpContext httpContext);
     Task<UserInfoDto?> GetCurrentUserAsync(Guid userId, Guid tenantId);
+    Task<UserInfoDto?> UpdateProfileAsync(Guid userId, Guid tenantId, UpdateProfileRequest request);
 }
 
 public class AuthService : IAuthService
@@ -65,11 +66,16 @@ public class AuthService : IAuthService
 
         var user = new User
         {
-            Id        = Guid.NewGuid(),
-            TenantId  = tenantId,
-            Email     = request.Email,
-            IsActive  = true,
-            CreatedAt = DateTime.UtcNow
+            Id               = Guid.NewGuid(),
+            TenantId         = tenantId,
+            Email            = request.Email,
+            FirstName        = request.FirstName,
+            LastName         = request.LastName,
+            Phone            = request.Phone,
+            KvkkConsent      = request.KvkkConsent,
+            MarketingConsent = request.MarketingConsent,
+            IsActive         = true,
+            CreatedAt        = DateTime.UtcNow
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
 
@@ -263,6 +269,27 @@ public class AuthService : IAuthService
         return BuildUserInfo(user, role);
     }
 
+    public async Task<UserInfoDto?> UpdateProfileAsync(Guid userId, Guid tenantId, UpdateProfileRequest request)
+    {
+        var user = await _context.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId);
+
+        if (user == null)
+            return null;
+
+        user.FirstName        = request.FirstName;
+        user.LastName         = request.LastName;
+        user.Phone            = request.Phone;
+        user.MarketingConsent = request.MarketingConsent;
+
+        await _context.SaveChangesAsync();
+
+        var role = user.UserRoles.FirstOrDefault()?.Role?.Name ?? "Customer";
+        return BuildUserInfo(user, role);
+    }
+
     // SHA-256 is fine for hashing random tokens (not passwords); it prevents raw token exposure in the DB
     private static string HashToken(string token)
     {
@@ -274,8 +301,13 @@ public class AuthService : IAuthService
 
     private static UserInfoDto BuildUserInfo(User user, string role) => new()
     {
-        Id    = user.Id,
-        Email = user.Email,
-        Role  = role
+        Id               = user.Id,
+        Email            = user.Email,
+        Role             = role,
+        FirstName        = user.FirstName,
+        LastName         = user.LastName,
+        Phone            = user.Phone,
+        KvkkConsent      = user.KvkkConsent,
+        MarketingConsent = user.MarketingConsent,
     };
 }

@@ -16,6 +16,18 @@ public class RegisterRequest
     [Required]
     [Compare(nameof(Password), ErrorMessage = "Şifreler eşleşmiyor.")]
     public string ConfirmPassword { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string? FirstName { get; set; }
+
+    [MaxLength(100)]
+    public string? LastName { get; set; }
+
+    [MaxLength(30)]
+    public string? Phone { get; set; }
+
+    public bool KvkkConsent { get; set; }
+    public bool MarketingConsent { get; set; }
 }
 
 public class LoginRequest
@@ -57,9 +69,28 @@ public class RefreshResponse
 
 public class UserInfoDto
 {
-    public Guid   Id    { get; set; }
-    public string Email { get; set; } = string.Empty;
-    public string Role  { get; set; } = string.Empty;
+    public Guid    Id                { get; set; }
+    public string  Email             { get; set; } = string.Empty;
+    public string  Role              { get; set; } = string.Empty;
+    public string? FirstName         { get; set; }
+    public string? LastName          { get; set; }
+    public string? Phone             { get; set; }
+    public bool    KvkkConsent       { get; set; }
+    public bool    MarketingConsent  { get; set; }
+}
+
+public class UpdateProfileRequest
+{
+    [MaxLength(100)]
+    public string? FirstName { get; set; }
+
+    [MaxLength(100)]
+    public string? LastName { get; set; }
+
+    [MaxLength(30)]
+    public string? Phone { get; set; }
+
+    public bool MarketingConsent { get; set; }
 }
 
 public class AuthResult

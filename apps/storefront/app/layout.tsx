@@ -23,6 +23,19 @@ function hexToHsl(hex: string): string | null {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+// Gradient bitiş rengini primary'den otomatik hesapla:
+// Renkli (saturated) renklerde tonu +20° kaydır ve aydınlat.
+// Renksiz (siyah/beyaz/gri) renklerde sadece aydınlat.
+function computePrimaryEnd(hsl: string): string {
+  const m = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+  if (!m) return hsl;
+  const [, h, s, l] = m.map(Number);
+  if (s <= 10) {
+    return `${h} ${s}% ${Math.min(l + 28, 90)}%`;
+  }
+  return `${(h + 20) % 360} ${Math.max(s - 10, 0)}% ${Math.min(l + 18, 88)}%`;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const settings = await api.settings.getAll();
@@ -41,14 +54,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let primaryHsl: string | null = null;
+  let primaryEndHsl: string | null = null;
   try {
     const settings = await api.settings.getAll();
     const hex = settings['store.color.primary'];
-    if (hex) primaryHsl = hexToHsl(hex);
+    if (hex) {
+      primaryHsl    = hexToHsl(hex);
+      primaryEndHsl = primaryHsl ? computePrimaryEnd(primaryHsl) : null;
+    }
   } catch { /* use CSS defaults */ }
 
   const customCss = primaryHsl
-    ? `:root { --primary: ${primaryHsl}; --ring: ${primaryHsl}; }`
+    ? `:root { --primary: ${primaryHsl}; --ring: ${primaryHsl}; --primary-end: ${primaryEndHsl ?? primaryHsl}; }`
     : '';
 
   return (

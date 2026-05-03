@@ -18,10 +18,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<TenantDomain> TenantDomains => Set<TenantDomain>();
 
     // ── Identity ─────────────────────────────────────────────────────────────
-    public DbSet<User>         Users         => Set<User>();
-    public DbSet<Role>         Roles         => Set<Role>();
-    public DbSet<UserRole>     UserRoles     => Set<UserRole>();
+    public DbSet<User>        Users         => Set<User>();
+    public DbSet<Role>        Roles         => Set<Role>();
+    public DbSet<UserRole>    UserRoles     => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
 
     // ── Catalog ──────────────────────────────────────────────────────────────
     public DbSet<Category>     Categories    => Set<Category>();
@@ -99,6 +100,11 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(255).IsRequired();
             entity.Property(e => e.PasswordHash).HasColumnName("password_hash").HasMaxLength(500).IsRequired();
+            entity.Property(e => e.FirstName).HasColumnName("first_name").HasMaxLength(100);
+            entity.Property(e => e.LastName).HasColumnName("last_name").HasMaxLength(100);
+            entity.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(30);
+            entity.Property(e => e.KvkkConsent).HasColumnName("kvkk_consent");
+            entity.Property(e => e.MarketingConsent).HasColumnName("marketing_consent");
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
@@ -113,6 +119,33 @@ public class ApplicationDbContext : DbContext
                 .WithOne(rt => rt.User)
                 .HasForeignKey(rt => rt.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Addresses)
+                .WithOne(a => a.User)
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserAddress>(entity =>
+        {
+            entity.ToTable("user_addresses");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Label).HasColumnName("label").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.FullName).HasColumnName("full_name").HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Phone).HasColumnName("phone").HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Line1).HasColumnName("line1").HasMaxLength(300).IsRequired();
+            entity.Property(e => e.Line2).HasColumnName("line2").HasMaxLength(300);
+            entity.Property(e => e.City).HasColumnName("city").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.District).HasColumnName("district").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.PostalCode).HasColumnName("postal_code").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Country).HasColumnName("country").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.IsDefault).HasColumnName("is_default");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasIndex(e => new { e.TenantId, e.UserId });
         });
 
         modelBuilder.Entity<Role>(entity =>

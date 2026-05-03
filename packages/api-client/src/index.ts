@@ -6,6 +6,7 @@ export { createCatalogService } from './services/catalog';
 export { createCartService } from './services/cart';
 export { createOrderService } from './services/orders';
 export { createSettingsService } from './services/settings';
+export { createAddressService } from './services/addresses';
 
 import { createApiClient } from './client';
 import { createAuthService } from './services/auth';
@@ -13,15 +14,17 @@ import { createCatalogService } from './services/catalog';
 import { createCartService } from './services/cart';
 import { createOrderService } from './services/orders';
 import { createSettingsService } from './services/settings';
+import { createAddressService } from './services/addresses';
 
 export function createSaaSClient(baseUrl: string, tenantSlug?: string) {
   const client = createApiClient(baseUrl, tenantSlug);
   return {
-    auth:     createAuthService(client),
-    catalog:  createCatalogService(client),
-    cart:     createCartService(client),
-    orders:   createOrderService(client),
-    settings: createSettingsService(client),
+    auth:      createAuthService(client),
+    catalog:   createCatalogService(client),
+    cart:      createCartService(client),
+    orders:    createOrderService(client),
+    settings:  createSettingsService(client),
+    addresses: createAddressService(client),
     uploadImage: async (file: File): Promise<string> => {
       const form = new FormData();
       form.append('file', file);

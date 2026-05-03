@@ -4,6 +4,47 @@ export interface RegisterRequest {
   email: string;
   password: string;
   confirmPassword: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  kvkkConsent: boolean;
+  marketingConsent: boolean;
+}
+
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  marketingConsent: boolean;
+}
+
+// ── Addresses ─────────────────────────────────────────────────────────────────
+
+export interface UserAddress {
+  id: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  district: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface AddressRequest {
+  label: string;
+  fullName: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  district: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
 }
 
 export interface LoginRequest {
@@ -14,10 +55,13 @@ export interface LoginRequest {
 export interface UserInfo {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
   role: string;
-  tenantId: string;
+  tenantId?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  kvkkConsent?: boolean;
+  marketingConsent?: boolean;
 }
 
 export interface WebLoginResponse {

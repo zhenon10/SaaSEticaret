@@ -162,6 +162,37 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Logged out successfully" });
     }
 
+    /// <summary>PUT /auth/me</summary>
+    [HttpPut("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(UserInfoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { error = "Invalid request", details = ModelState });
+
+        var userIdClaim   = User.FindFirstValue("sub");
+        var tenantIdClaim = User.FindFirstValue("tid");
+
+        if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(tenantIdClaim))
+            return Unauthorized(new { error = "Invalid token claims" });
+
+        if (!Guid.TryParse(userIdClaim, out var userId) || !Guid.TryParse(tenantIdClaim, out var tokenTenantId))
+            return Unauthorized(new { error = "Malformed token claims" });
+
+        if (!_tenantContext.IsSet || _tenantContext.TenantId != tokenTenantId)
+            return Forbid();
+
+        var user = await _authService.UpdateProfileAsync(userId, tokenTenantId, request);
+
+        if (user == null)
+            return NotFound(new { error = "User not found" });
+
+        return Ok(user);
+    }
+
     /// <summary>GET /auth/me</summary>
     [HttpGet("me")]
     [Authorize]

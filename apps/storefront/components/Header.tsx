@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { Heart, ShoppingBag, User, Menu } from 'lucide-react';
 import SearchBar from './SearchBar';
+import AccountDropdown from './AccountDropdown';
 import { api } from '@/lib/api';
 
 const DEFAULT_NAV_LINKS = [
@@ -16,6 +17,9 @@ export default async function Header() {
 
   let navLinks = DEFAULT_NAV_LINKS;
   let storeName = 'mağaza';
+  let userName = '';
+  let userPhone: string | undefined;
+
   try {
     const settings = await api.settings.getAll();
     if (settings['store.name']) storeName = settings['store.name'];
@@ -26,6 +30,14 @@ export default async function Header() {
     }
   } catch {
     // fall back to defaults
+  }
+
+  if (isLoggedIn) {
+    try {
+      const user = await api.auth.me();
+      userName  = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+      userPhone = user.phone ?? undefined;
+    } catch { /* ignore */ }
   }
 
   return (
@@ -49,13 +61,7 @@ export default async function Header() {
           {/* Actions */}
           <nav className="flex shrink-0 items-center gap-5">
             {isLoggedIn ? (
-              <Link
-                href="/account/orders"
-                className="flex flex-col items-center gap-0.5 text-gray-600 transition-colors hover:text-primary"
-              >
-                <User className="h-5 w-5" />
-                <span className="text-[11px]">Hesabım</span>
-              </Link>
+              <AccountDropdown name={userName} phone={userPhone} />
             ) : (
               <Link
                 href="/login"

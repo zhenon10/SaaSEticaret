@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
-import { Tag } from 'lucide-react';
+import { getCategoryVisual } from '@/components/CategoryIcon';
 import type { Category } from '@saas/api-client';
 
 export const revalidate = 60;
@@ -78,10 +78,18 @@ export default async function HomePage() {
     <div className="bg-gray-50">
       {/* ── Hero Banner ────────────────────────────────── */}
       <section
-        className={`relative overflow-hidden ${heroImage ? '' : 'bg-gradient-to-r from-primary to-orange-400'}`}
-        style={heroImage ? { backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+        className="relative overflow-hidden"
+        style={heroImage
+          ? { backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+          : { background: 'linear-gradient(to right, hsl(var(--primary)), hsl(var(--primary-end, var(--primary))))' }
+        }
       >
-        {heroImage && <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-orange-500/75" />}
+        {heroImage && (
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(to right, hsl(var(--primary) / 0.9), hsl(var(--primary-end, var(--primary)) / 0.75))' }}
+          />
+        )}
         <div className="relative container mx-auto px-4 py-16 text-center">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-orange-100">
             {heroBadge}
@@ -122,20 +130,23 @@ export default async function HomePage() {
       {categories.length > 0 && (
         <section className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
-            {categories.slice(0, 8).map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/products?category=${cat.slug}`}
-                className="group flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-white p-3 text-center shadow-sm transition-all hover:border-primary hover:shadow-md"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
-                  <Tag className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-medium text-gray-700 group-hover:text-primary">
-                  {cat.name}
-                </span>
-              </Link>
-            ))}
+            {categories.slice(0, 8).map((cat) => {
+              const { Icon, bg, fg } = getCategoryVisual(cat.name, cat.slug);
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/products?category=${cat.slug}`}
+                  className="group flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-white p-3 text-center shadow-sm transition-all hover:border-primary hover:shadow-md"
+                >
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${bg} ${fg} transition-colors group-hover:bg-primary group-hover:text-white`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 group-hover:text-primary">
+                    {cat.name}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
