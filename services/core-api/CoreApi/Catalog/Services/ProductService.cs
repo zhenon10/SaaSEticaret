@@ -3,6 +3,7 @@ using CoreApi.Catalog.DTOs;
 using CoreApi.Catalog.Entities;
 using CoreApi.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CoreApi.Catalog.Services;
 
@@ -162,6 +163,7 @@ public class ProductService : IProductService
             Price        = request.Price,
             CompareAtPrice = request.CompareAtPrice,
             Sku          = string.IsNullOrWhiteSpace(request.Sku) ? null : request.Sku,
+            OptionsJson  = SerializeProductOptions(request.Colors, request.Sizes),
             IsActive     = true,
             IsFeatured   = request.IsFeatured,
             CreatedAt    = DateTime.UtcNow
@@ -223,6 +225,14 @@ public class ProductService : IProductService
                 await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Sku == request.Sku && p.Id != id))
                 throw new InvalidOperationException($"A product with SKU '{request.Sku}' already exists.");
             product.Sku = string.IsNullOrWhiteSpace(request.Sku) ? null : request.Sku;
+        }
+
+        var existingOptions = ParseProductOptions(product.OptionsJson);
+        if (request.Colors is not null || request.Sizes is not null)
+        {
+            product.OptionsJson = SerializeProductOptions(
+                request.Colors ?? existingOptions.Colors,
+                request.Sizes ?? existingOptions.Sizes);
         }
 
         if (request.Name           is not null) product.Name           = request.Name;
@@ -342,24 +352,36 @@ public class ProductService : IProductService
             .Include(p => p.Inventory)
             .FirstOrDefaultAsync(predicate);
 
-    private static ProductResponse MapToResponse(Product p) => new()
+    private static ProductResponse MapToResponse(Product p)
     {
-        Id             = p.Id,
-        CategoryId     = p.CategoryId,
-        CategoryName   = p.Category?.Name ?? string.Empty,
-        Name           = p.Name,
-        Slug           = p.Slug,
-        Description    = p.Description,
-        Price          = p.Price,
-        CompareAtPrice = p.CompareAtPrice,
-        Sku            = p.Sku,
-        IsActive       = p.IsActive,
-        IsFeatured     = p.IsFeatured,
-        CreatedAt      = p.CreatedAt,
-        UpdatedAt      = p.UpdatedAt,
-        Images         = p.Images.Select(MapImageToResponse).ToList(),
-        Inventory      = p.Inventory is null ? null : MapInventoryToResponse(p.Inventory)
-    };
+        var options = ParseProductOptions(p.OptionsJson);
+        return new ProductResponse
+        {
+            Id             = p.Id,
+            CategoryId     = p.CategoryId,
+            CategoryName   = p.Category?.Name ?? string.Empty,
+            Category       = p.Category is null ? null : new ProductCategoryResponse
+            {
+                Id   = p.Category.Id,
+                Name = p.Category.Name,
+                Slug = p.Category.Slug
+            },
+            Name           = p.Name,
+            Slug           = p.Slug,
+            Description    = p.Description,
+            Price          = p.Price,
+            CompareAtPrice = p.CompareAtPrice,
+            Sku            = p.Sku,
+            Colors         = options.Colors,
+            Sizes          = options.Sizes,
+            IsActive       = p.IsActive,
+            IsFeatured     = p.IsFeatured,
+            CreatedAt      = p.CreatedAt,
+            UpdatedAt      = p.UpdatedAt,
+            Images         = p.Images.Select(MapImageToResponse).ToList(),
+            Inventory      = p.Inventory is null ? null : MapInventoryToResponse(p.Inventory)
+        };
+    }
 
     private static ProductImageResponse MapImageToResponse(ProductImage i) => new()
     {
@@ -380,4 +402,42 @@ public class ProductService : IProductService
         IsLowStock        = inv.IsLowStock,
         UpdatedAt         = inv.UpdatedAt
     };
+
+    private static ProductOptions ParseProductOptions(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return new ProductOptions();
+
+        try
+        {
+            return JsonSerializer.Deserialize<ProductOptions>(raw, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? new ProductOptions();
+        }
+        catch
+        {
+            return new ProductOptions();
+        }
+    }
+
+    private static string? SerializeProductOptions(List<string>? colors, List<string>? sizes)
+    {
+        if ((colors == null || colors.Count == 0) && (sizes == null || sizes.Count == 0))
+            return null;
+
+        var options = new ProductOptions
+        {
+            Colors = colors ?? new List<string>(),
+            Sizes = sizes ?? new List<string>()
+        };
+
+        return JsonSerializer.Serialize(options);
+    }
+
+    private class ProductOptions
+    {
+        public List<string> Colors { get; set; } = new();
+        public List<string> Sizes  { get; set; } = new();
+    }
 }

@@ -104,11 +104,70 @@ public static class DatabaseSeeder
             });
         }
 
+        // ==================== CATEGORIES & PRODUCTS ====================
+
+        var topCategory = new Category
+        {
+            Id          = Guid.NewGuid(),
+            TenantId    = tenant.Id,
+            Name        = "Üst Giyim",
+            Slug        = "ust-giyim",
+            Description = "Tişörtler, gömlekler ve diğer üst giyim",
+            DisplayOrder = 1,
+            CreatedAt   = DateTime.UtcNow
+        };
+        context.Categories.Add(topCategory);
+
+        var product = new Product
+        {
+            Id              = Guid.NewGuid(),
+            TenantId        = tenant.Id,
+            CategoryId      = topCategory.Id,
+            Name            = "Premium Pamuklu Tişört",
+            Slug            = "premium-pamuklu-tisort",
+            Description     = "%100 Organik Pamuk, Yumuşak ve Rahat, Tüm Sezonlar İçin Uygun",
+            Price           = 299.99m,
+            CompareAtPrice  = 399.99m,
+            Sku             = "TSHIRT-001",
+            IsActive        = true,
+            IsFeatured      = true,
+            OptionsJson     = JsonSerializer.Serialize(new { Colors = new[] { "Beyaz", "Siyah", "Gri", "Mavi" }, Sizes = new[] { "XS", "S", "M", "L", "XL", "XXL" } }),
+            CreatedAt       = DateTime.UtcNow
+        };
+        context.Products.Add(product);
+
+        var inventory = new Inventory
+        {
+            Id                  = Guid.NewGuid(),
+            TenantId            = tenant.Id,
+            ProductId           = product.Id,
+            Quantity            = 100,
+            ReservedQuantity    = 0,
+            LowStockThreshold   = 10,
+            CreatedAt           = DateTime.UtcNow
+        };
+        context.Inventories.Add(inventory);
+
         await context.SaveChangesAsync();
 
         Console.WriteLine($"[Seed] Tenant  : {tenant.Slug} ({tenant.Id})");
         Console.WriteLine($"[Seed] Admin   : {adminUser.Email}");
         Console.WriteLine($"[Seed] Settings: {DefaultSettings.Count} defaults seeded");
+        Console.WriteLine($"[Seed] Products: 1 product with options seeded");
+        return;
+
+        // Old settings loop - commented out
+        /*
+        foreach (var (key, value) in DefaultSettings)
+        {
+            context.SiteSettings.Add(new SiteSetting
+            {
+                TenantId  = tenant.Id,
+                Key       = key,
+                Value     = value,
+                UpdatedAt = DateTime.UtcNow,
+            });
+        }
     }
 
     /// <summary>For existing databases: insert any default setting keys that are not yet present.</summary>

@@ -232,6 +232,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Price).HasColumnName("price").HasColumnType("numeric(18,2)");
             entity.Property(e => e.CompareAtPrice).HasColumnName("compare_at_price").HasColumnType("numeric(18,2)");
             entity.Property(e => e.Sku).HasColumnName("sku").HasMaxLength(100);
+            entity.Property(e => e.OptionsJson).HasColumnName("options_json").HasColumnType("text");
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.IsFeatured).HasColumnName("is_featured");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
@@ -343,12 +344,14 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.CartId).HasColumnName("cart_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(100);
+            entity.Property(e => e.Size).HasColumnName("size").HasMaxLength(50);
             entity.Property(e => e.Quantity).HasColumnName("quantity");
             entity.Property(e => e.UnitPrice).HasColumnName("unit_price").HasColumnType("numeric(18,2)");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
             entity.HasIndex(e => e.CartId);
-            entity.HasIndex(e => new { e.CartId, e.ProductId }).IsUnique();
+            entity.HasIndex(e => new { e.CartId, e.ProductId, e.Color, e.Size }).IsUnique();
         });
 
         modelBuilder.Entity<Order>(entity =>

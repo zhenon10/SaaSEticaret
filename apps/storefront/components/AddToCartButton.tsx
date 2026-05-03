@@ -6,9 +6,9 @@ import { api } from '@/lib/api';
 import { ApiError } from '@saas/api-client';
 import { Button } from '@/components/ui/button';
 
-interface Props { productId: string }
+interface Props { productId: string; color?: string; size?: string }
 
-export default function AddToCartButton({ productId }: Props) {
+export default function AddToCartButton({ productId, color, size }: Props) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -16,7 +16,7 @@ export default function AddToCartButton({ productId }: Props) {
     setLoading(true);
     setMessage('');
     try {
-      await api.cart.addItem({ productId, quantity: 1 });
+      await api.cart.addItem({ productId, quantity: 1, color, size });
       setMessage('Sepete eklendi!');
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {

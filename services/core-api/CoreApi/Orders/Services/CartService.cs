@@ -56,7 +56,11 @@ public class CartService : ICartService
         var cart = await GetOrCreateCartAsync(userId);
 
         // If product already in cart — merge quantities
-        var existing = cart.Items.FirstOrDefault(i => i.ProductId == request.ProductId);
+        var existing = cart.Items.FirstOrDefault(i =>
+            i.ProductId == request.ProductId &&
+            string.Equals(i.Color, request.Color, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(i.Size, request.Size, StringComparison.OrdinalIgnoreCase));
+
         if (existing is not null)
         {
             var newQty = existing.Quantity + request.Quantity;
@@ -72,13 +76,56 @@ public class CartService : ICartService
                 TenantId  = tenantId,
                 CartId    = cart.Id,
                 ProductId = request.ProductId,
+                Color     = string.IsNullOrWhiteSpace(request.Color) ? null : request.Color,
+                Size      = string.IsNullOrWhiteSpace(request.Size) ? null : request.Size,
                 Quantity  = request.Quantity,
                 UnitPrice = product.Price,
                 CreatedAt = DateTime.UtcNow
             });
         }
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogWarning(ex, "Concurrency exception occurred while adding product {ProductId} to cart for user {UserId}. Retrying.", request.ProductId, userId);
+
+            // Reload the cart and retry with the latest state.
+            _context.ChangeTracker.Clear();
+            cart = await GetOrCreateCartAsync(userId);
+
+            existing = cart.Items.FirstOrDefault(i =>
+                i.ProductId == request.ProductId &&
+                string.Equals(i.Color, request.Color, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(i.Size, request.Size, StringComparison.OrdinalIgnoreCase));
+
+            if (existing is not null)
+            {
+                var newQty = existing.Quantity + request.Quantity;
+                if (available < newQty)
+                    throw new InvalidOperationException($"Only {available} units available.");
+                existing.Quantity = newQty;
+            }
+            else
+            {
+                cart.Items.Add(new CartItem
+                {
+                    Id        = Guid.NewGuid(),
+                    TenantId  = tenantId,
+                    CartId    = cart.Id,
+                    ProductId = request.ProductId,
+                    Color     = string.IsNullOrWhiteSpace(request.Color) ? null : request.Color,
+                    Size      = string.IsNullOrWhiteSpace(request.Size) ? null : request.Size,
+                    Quantity  = request.Quantity,
+                    UnitPrice = product.Price,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _context.SaveChangesAsync();
+        }
 
         _logger.LogInformation("Product {ProductId} added to cart for user {UserId}", request.ProductId, userId);
 
@@ -187,6 +234,8 @@ public class CartService : ICartService
                 ProductSlug  = product?.Slug ?? string.Empty,
                 ProductImage = product?.Images.FirstOrDefault()?.Url,
                 Sku          = product?.Sku,
+                Color        = item.Color,
+                Size         = item.Size,
                 Quantity     = item.Quantity,
                 UnitPrice    = item.UnitPrice,
                 LineTotal    = item.LineTotal,

@@ -27,3 +27,7 @@ appsettings.*.json
 Thumbs.db
 node_modules
 services/core-api/logs/
+
+# Untracked files
+tmpbuild/
+services/core-api/CoreApi/wwwroot/uploads/

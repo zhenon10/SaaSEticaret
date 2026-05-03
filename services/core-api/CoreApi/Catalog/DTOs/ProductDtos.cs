@@ -62,6 +62,9 @@ public class CreateProductRequest
     [MaxLength(100)]
     public string? Sku { get; set; }
 
+    public List<string>? Colors { get; set; }
+    public List<string>? Sizes { get; set; }
+
     public bool IsFeatured { get; set; }
 
     [Range(0, int.MaxValue)]
@@ -94,6 +97,9 @@ public class UpdateProductRequest
 
     [MaxLength(100)]
     public string?  Sku            { get; set; }
+
+    public List<string>? Colors { get; set; }
+    public List<string>? Sizes { get; set; }
 
     public bool?    IsFeatured     { get; set; }
     public bool?    IsActive       { get; set; }
@@ -152,6 +158,8 @@ public class ProductResponse
     public decimal  Price          { get; set; }
     public decimal? CompareAtPrice { get; set; }
     public string?  Sku            { get; set; }
+    public List<string> Colors { get; set; } = new();
+    public List<string> Sizes { get; set; } = new();
     public bool     IsActive       { get; set; }
     public bool     IsFeatured     { get; set; }
     public DateTime CreatedAt      { get; set; }
@@ -159,6 +167,14 @@ public class ProductResponse
 
     public List<ProductImageResponse> Images    { get; set; } = new();
     public InventoryResponse?         Inventory { get; set; }
+    public ProductCategoryResponse?    Category  { get; set; }
+}
+
+public class ProductCategoryResponse
+{
+    public Guid   Id   { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
 }
 
 public class ProductImageResponse

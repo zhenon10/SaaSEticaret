@@ -27,6 +27,7 @@ public class Product : BaseEntityWithAudit
     public string?  Sku            { get; set; }
     public bool     IsActive       { get; set; } = true;
     public bool     IsFeatured     { get; set; }
+    public string?  OptionsJson    { get; set; }
 
     public Category?                Category  { get; set; }
     public ICollection<ProductImage> Images   { get; set; } = new List<ProductImage>();

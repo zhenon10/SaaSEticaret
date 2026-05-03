@@ -48,6 +48,13 @@ export default function CartItemRow({ item }: Props) {
       <div className="flex-1 min-w-0">
         <p className="font-semibold truncate">{item.productName}</p>
         {item.sku && <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>}
+        {(item.color || item.size) && (
+          <p className="text-xs text-muted-foreground">
+            {item.color && <>Renk: {item.color}</>}
+            {item.color && item.size && ' • '}
+            {item.size && <>Beden: {item.size}</>}
+          </p>
+        )}
         <p className="text-sm text-muted-foreground">{formatPrice(item.unitPrice)} / adet</p>
       </div>
 

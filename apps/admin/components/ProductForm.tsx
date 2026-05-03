@@ -53,6 +53,10 @@ export default function ProductForm({ categories, product }: Props) {
   );
   const [pendingUrls, setPendingUrls] = useState<string[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
+  const [colors, setColors] = useState<string[]>(product?.colors ?? []);
+  const [colorInput, setColorInput] = useState('');
+  const [sizes, setSizes] = useState<string[]>(product?.sizes ?? []);
+  const [sizeInput, setSizeInput] = useState('');
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -123,7 +127,7 @@ export default function ProductForm({ categories, product }: Props) {
 
   const onSubmit = async (data: FormValues) => {
     setError('');
-    const payload = { ...data, slug: data.slug || toSlug(data.name) };
+    const payload = { ...data, slug: data.slug || toSlug(data.name), colors, sizes };
     try {
       if (isEditing) {
         await api.catalog.updateProduct(product.id, payload);
@@ -188,6 +192,104 @@ export default function ProductForm({ categories, product }: Props) {
             <input type="number" className={inputClass} placeholder="0" {...register('initialStock')} />
           </Field>
         )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Renkler">
+          <div className="space-y-2">
+            <div className="flex gap-2 flex-wrap">
+              {colors.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setColors((prev) => prev.filter((item) => item !== color))}
+                  className="rounded-full border border-input px-3 py-1 text-sm text-muted-foreground hover:bg-muted"
+                >
+                  {color}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={colorInput}
+                onChange={(event) => setColorInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    const value = colorInput.trim();
+                    if (value && !colors.includes(value)) {
+                      setColors((prev) => [...prev, value]);
+                    }
+                    setColorInput('');
+                  }
+                }}
+                className={inputClass}
+                placeholder="Örn: Mavi"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const value = colorInput.trim();
+                  if (value && !colors.includes(value)) {
+                    setColors((prev) => [...prev, value]);
+                  }
+                  setColorInput('');
+                }}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Ekle
+              </button>
+            </div>
+          </div>
+        </Field>
+
+        <Field label="Bedenler">
+          <div className="space-y-2">
+            <div className="flex gap-2 flex-wrap">
+              {sizes.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => setSizes((prev) => prev.filter((item) => item !== size))}
+                  className="rounded-full border border-input px-3 py-1 text-sm text-muted-foreground hover:bg-muted"
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={sizeInput}
+                onChange={(event) => setSizeInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    const value = sizeInput.trim();
+                    if (value && !sizes.includes(value)) {
+                      setSizes((prev) => [...prev, value]);
+                    }
+                    setSizeInput('');
+                  }
+                }}
+                className={inputClass}
+                placeholder="Örn: S, M, L"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const value = sizeInput.trim();
+                  if (value && !sizes.includes(value)) {
+                    setSizes((prev) => [...prev, value]);
+                  }
+                  setSizeInput('');
+                }}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Ekle
+              </button>
+            </div>
+          </div>
+        </Field>
       </div>
 
       <div className="flex gap-6">

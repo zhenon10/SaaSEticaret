@@ -39,14 +39,16 @@ export default async function Footer() {
   let s: Record<string, string> = {};
   try { s = await api.settings.getAll(); } catch { /* use defaults */ }
 
-  const storeName   = s['store.name']          || 'mağaza';
-  const description = s['footer.description']  || "Türkiye'nin güvenilir online alışveriş platformu.";
-  const email       = s['footer.contact.email'] || '';
-  const phone       = s['footer.contact.phone'] || '';
-  const hours       = s['footer.contact.hours'] || '';
-  const copyright   = s['footer.copyright']    || 'Tüm hakları saklıdır.';
-  const columns     = parseJson<FooterColumn[]>(s['footer.columns'], DEFAULT_COLUMNS);
-  const legal       = parseJson<FooterLink[]>(s['footer.legal'],   DEFAULT_LEGAL);
+  const storeName       = s['store.name']          || 'mağaza';
+  const description     = s['footer.description']  || "Türkiye'nin güvenilir online alışveriş platformu.";
+  const email           = s['footer.contact.email'] || '';
+  const phone           = s['footer.contact.phone'] || '';
+  const hours           = s['footer.contact.hours'] || '';
+  const copyright       = s['footer.copyright']    || 'Tüm hakları saklıdır.';
+  const footerBg        = s['footer.background']   || s['store.color.primary'] || '#111827';
+  const footerTextColor = s['footer.textColor']    || '#f8fafc';
+  const columns         = parseJson<FooterColumn[]>(s['footer.columns'], DEFAULT_COLUMNS);
+  const legal           = parseJson<FooterLink[]>(s['footer.legal'],   DEFAULT_LEGAL);
 
   const hasContact = email || phone || hours;
   const totalCols  = columns.length + (hasContact ? 1 : 0) + 1; // +1 brand
@@ -57,7 +59,7 @@ export default async function Footer() {
     : 'sm:grid-cols-2';
 
   return (
-    <footer className="bg-gray-900 text-gray-300">
+    <footer className="text-white" style={{ backgroundColor: footerBg, color: footerTextColor }}>
       <div className={`container mx-auto grid gap-8 px-4 py-12 ${gridClass}`}>
 
         {/* Brand */}

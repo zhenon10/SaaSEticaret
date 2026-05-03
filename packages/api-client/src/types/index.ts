@@ -130,6 +130,8 @@ export interface Product {
   price: number;
   compareAtPrice?: number;
   sku?: string;
+  colors?: string[];
+  sizes?: string[];
   isActive: boolean;
   isFeatured: boolean;
   categoryId?: string;
@@ -176,6 +178,8 @@ export interface CreateProductRequest {
   price: number;
   compareAtPrice?: number;
   sku?: string;
+  colors?: string[];
+  sizes?: string[];
   isActive?: boolean;
   isFeatured?: boolean;
   categoryId?: string;
@@ -211,6 +215,8 @@ export interface CartItem {
   productSlug: string;
   productImage?: string;
   sku?: string;
+  color?: string;
+  size?: string;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -229,6 +235,8 @@ export interface Cart {
 export interface AddToCartRequest {
   productId: string;
   quantity: number;
+  color?: string;
+  size?: string;
 }
 
 export interface UpdateCartItemRequest {
