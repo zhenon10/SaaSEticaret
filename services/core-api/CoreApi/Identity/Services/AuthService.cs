@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using CoreApi.Application.Tenancy;
 using CoreApi.Identity.DTOs;
 using CoreApi.Identity.Entities;
 using CoreApi.Infrastructure.Persistence;
@@ -16,15 +15,14 @@ public interface IAuthService
     Task<AuthResult> LoginAsync(LoginRequest request, HttpContext httpContext);
     Task<AuthResult> RefreshAsync(RefreshRequest request, HttpContext httpContext);
     Task<AuthResult> LogoutAsync(string? refreshToken, HttpContext httpContext);
-    Task<UserInfoDto?> GetCurrentUserAsync(Guid userId, Guid tenantId);
-    Task<UserInfoDto?> UpdateProfileAsync(Guid userId, Guid tenantId, UpdateProfileRequest request);
+    Task<UserInfoDto?> GetCurrentUserAsync(Guid userId);
+    Task<UserInfoDto?> UpdateProfileAsync(Guid userId, UpdateProfileRequest request);
 }
 
 public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
     private readonly ITokenService _tokenService;
-    private readonly ITenantContext _tenantContext;
     private readonly ILogger<AuthService> _logger;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly JwtSettings _jwtSettings;
@@ -32,14 +30,12 @@ public class AuthService : IAuthService
     public AuthService(
         ApplicationDbContext context,
         ITokenService tokenService,
-        ITenantContext tenantContext,
         ILogger<AuthService> logger,
         IPasswordHasher<User> passwordHasher,
         IOptions<JwtSettings> jwtSettings)
     {
         _context        = context;
         _tokenService   = tokenService;
-        _tenantContext  = tenantContext;
         _logger         = logger;
         _passwordHasher = passwordHasher;
         _jwtSettings    = jwtSettings.Value;
@@ -47,19 +43,12 @@ public class AuthService : IAuthService
 
     public async Task<AuthResult> RegisterAsync(RegisterRequest request, HttpContext httpContext)
     {
-        if (!_tenantContext.IsSet)
-            return Fail("Tenant context not found");
-
-        var tenantId = _tenantContext.TenantId;
-
-        var emailExists = await _context.Users
-            .AnyAsync(u => u.TenantId == tenantId && u.Email == request.Email);
+        var emailExists = await _context.Users.AnyAsync(u => u.Email == request.Email);
 
         if (emailExists)
             return Fail("Bu e-posta adresi zaten kullanılıyor.");
 
-        var customerRole = await _context.Roles
-            .FirstOrDefaultAsync(r => r.Name == "Customer" && r.TenantId == null);
+        var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Customer");
 
         if (customerRole == null)
             return Fail("Sistem yapılandırma hatası.");
@@ -67,7 +56,6 @@ public class AuthService : IAuthService
         var user = new User
         {
             Id               = Guid.NewGuid(),
-            TenantId         = tenantId,
             Email            = request.Email,
             FirstName        = request.FirstName,
             LastName         = request.LastName,
@@ -83,12 +71,11 @@ public class AuthService : IAuthService
         _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = customerRole.Id });
 
         var sessionId = Guid.NewGuid();
-        var (accessToken, refreshToken) = _tokenService.GenerateTokenPair(user.Id, tenantId, "Customer", sessionId);
+        var (accessToken, refreshToken) = _tokenService.GenerateTokenPair(user.Id, "Customer", sessionId);
 
         _context.RefreshTokens.Add(new RefreshToken
         {
             Id        = Guid.NewGuid(),
-            TenantId  = tenantId,
             UserId    = user.Id,
             Token     = HashToken(refreshToken),
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
@@ -98,7 +85,7 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("New user registered: {UserId} in tenant {TenantId}", user.Id, tenantId);
+        _logger.LogInformation("New user registered: {UserId}", user.Id);
 
         return new AuthResult
         {
@@ -111,20 +98,14 @@ public class AuthService : IAuthService
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, HttpContext httpContext)
     {
-        if (!_tenantContext.IsSet)
-            return Fail("Tenant context not found");
-
-        var tenantId = _tenantContext.TenantId;
-
         var user = await _context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.TenantId == tenantId && u.Email == request.Email);
+            .FirstOrDefaultAsync(u => u.Email == request.Email);
 
         if (user == null)
         {
-            _logger.LogWarning("Login failed: user not found for email {Email} in tenant {TenantId}",
-                request.Email, tenantId);
+            _logger.LogWarning("Login failed: user not found for email {Email}", request.Email);
             return Fail("Invalid credentials");
         }
 
@@ -134,8 +115,7 @@ public class AuthService : IAuthService
             return Fail("Account is disabled");
         }
 
-        var verificationResult = _passwordHasher.VerifyHashedPassword(
-            user, user.PasswordHash, request.Password);
+        var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
 
         if (verificationResult == PasswordVerificationResult.Failed)
         {
@@ -145,13 +125,11 @@ public class AuthService : IAuthService
 
         var role      = user.UserRoles.FirstOrDefault()?.Role?.Name ?? "Customer";
         var sessionId = Guid.NewGuid();
-
-        var (accessToken, refreshToken) = _tokenService.GenerateTokenPair(user.Id, tenantId, role, sessionId);
+        var (accessToken, refreshToken) = _tokenService.GenerateTokenPair(user.Id, role, sessionId);
 
         _context.RefreshTokens.Add(new RefreshToken
         {
             Id        = Guid.NewGuid(),
-            TenantId  = tenantId,
             UserId    = user.Id,
             Token     = HashToken(refreshToken),
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
@@ -161,7 +139,7 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("User {UserId} logged in from tenant {TenantId}", user.Id, tenantId);
+        _logger.LogInformation("User {UserId} logged in", user.Id);
 
         return new AuthResult
         {
@@ -174,10 +152,6 @@ public class AuthService : IAuthService
 
     public async Task<AuthResult> RefreshAsync(RefreshRequest request, HttpContext httpContext)
     {
-        if (!_tenantContext.IsSet)
-            return Fail("Tenant context not found");
-
-        var tenantId    = _tenantContext.TenantId;
         var hashedToken = HashToken(request.RefreshToken!);
 
         var stored = await _context.RefreshTokens
@@ -185,37 +159,27 @@ public class AuthService : IAuthService
                 .ThenInclude(u => u!.UserRoles)
                     .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(rt =>
-                rt.TenantId    == tenantId &&
-                rt.Token       == hashedToken &&
-                rt.ExpiresAt   >  DateTime.UtcNow &&
-                rt.RevokedAt   == null);
+                rt.Token     == hashedToken &&
+                rt.ExpiresAt >  DateTime.UtcNow &&
+                rt.RevokedAt == null);
 
         if (stored == null)
         {
-            _logger.LogWarning("Refresh failed: invalid or expired token for tenant {TenantId}", tenantId);
+            _logger.LogWarning("Refresh failed: invalid or expired token");
             return Fail("Invalid or expired refresh token");
-        }
-
-        // Cross-tenant protection: token's owner must belong to the current tenant
-        if (stored.User?.TenantId != tenantId)
-        {
-            _logger.LogWarning("Refresh failed: tenant mismatch for token in tenant {TenantId}", tenantId);
-            return Fail("Invalid refresh token");
         }
 
         var user = stored.User!;
         var role = user.UserRoles.FirstOrDefault()?.Role?.Name ?? "Customer";
 
-        // Rotate: revoke old token and issue a fresh pair
         stored.RevokedAt = DateTime.UtcNow;
 
         var sessionId = Guid.NewGuid();
-        var (accessToken, newRefreshToken) = _tokenService.GenerateTokenPair(user.Id, tenantId, role, sessionId);
+        var (accessToken, newRefreshToken) = _tokenService.GenerateTokenPair(user.Id, role, sessionId);
 
         _context.RefreshTokens.Add(new RefreshToken
         {
             Id        = Guid.NewGuid(),
-            TenantId  = tenantId,
             UserId    = user.Id,
             Token     = HashToken(newRefreshToken),
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
@@ -255,12 +219,12 @@ public class AuthService : IAuthService
         return new AuthResult { Success = true };
     }
 
-    public async Task<UserInfoDto?> GetCurrentUserAsync(Guid userId, Guid tenantId)
+    public async Task<UserInfoDto?> GetCurrentUserAsync(Guid userId)
     {
         var user = await _context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId);
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
             return null;
@@ -269,12 +233,12 @@ public class AuthService : IAuthService
         return BuildUserInfo(user, role);
     }
 
-    public async Task<UserInfoDto?> UpdateProfileAsync(Guid userId, Guid tenantId, UpdateProfileRequest request)
+    public async Task<UserInfoDto?> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
     {
         var user = await _context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId);
+            .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
             return null;
@@ -290,7 +254,6 @@ public class AuthService : IAuthService
         return BuildUserInfo(user, role);
     }
 
-    // SHA-256 is fine for hashing random tokens (not passwords); it prevents raw token exposure in the DB
     private static string HashToken(string token)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));

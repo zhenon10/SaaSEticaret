@@ -1,4 +1,3 @@
-using CoreApi.Application.Tenancy;
 using CoreApi.Catalog.DTOs;
 using CoreApi.Catalog.Entities;
 using CoreApi.Infrastructure.Persistence;
@@ -24,31 +23,24 @@ public interface IProductService
 public class ProductService : IProductService
 {
     private readonly ApplicationDbContext _context;
-    private readonly ITenantContext _tenantContext;
     private readonly ILogger<ProductService> _logger;
 
     public ProductService(
         ApplicationDbContext context,
-        ITenantContext tenantContext,
         ILogger<ProductService> logger)
     {
-        _context       = context;
-        _tenantContext = tenantContext;
-        _logger        = logger;
+        _context = context;
+        _logger  = logger;
     }
 
     public async Task<PagedResult<ProductListItem>> GetPagedAsync(ProductQueryFilter filter)
     {
-        var tenantId = _tenantContext.TenantId;
-
         var query = _context.Products
             .Include(p => p.Category)
             .Include(p => p.Images)
             .Include(p => p.Inventory)
-            .Where(p => p.TenantId == tenantId)
             .AsQueryable();
 
-        // Filters
         if (filter.CategoryId.HasValue)
             query = query.Where(p => p.CategoryId == filter.CategoryId);
 
@@ -121,61 +113,50 @@ public class ProductService : IProductService
 
     public async Task<ProductResponse?> GetByIdAsync(Guid id)
     {
-        var tenantId = _tenantContext.TenantId;
-        var product = await FetchFullProductAsync(p => p.Id == id && p.TenantId == tenantId);
+        var product = await FetchFullProductAsync(p => p.Id == id);
         return product is null ? null : MapToResponse(product);
     }
 
     public async Task<ProductResponse?> GetBySlugAsync(string slug)
     {
-        var tenantId = _tenantContext.TenantId;
-        var product = await FetchFullProductAsync(p => p.Slug == slug && p.TenantId == tenantId);
+        var product = await FetchFullProductAsync(p => p.Slug == slug);
         return product is null ? null : MapToResponse(product);
     }
 
     public async Task<ProductResponse> CreateAsync(CreateProductRequest request)
     {
-        var tenantId = _tenantContext.TenantId;
-
-        // Validate category belongs to this tenant
-        var category = await _context.Categories
-            .FirstOrDefaultAsync(c => c.Id == request.CategoryId && c.TenantId == tenantId);
+        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == request.CategoryId);
         if (category is null)
             throw new InvalidOperationException("Category not found.");
 
-        // Slug uniqueness per tenant
-        if (await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Slug == request.Slug))
+        if (await _context.Products.AnyAsync(p => p.Slug == request.Slug))
             throw new InvalidOperationException($"A product with slug '{request.Slug}' already exists.");
 
-        // SKU uniqueness per tenant (when provided)
         if (!string.IsNullOrEmpty(request.Sku) &&
-            await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Sku == request.Sku))
+            await _context.Products.AnyAsync(p => p.Sku == request.Sku))
             throw new InvalidOperationException($"A product with SKU '{request.Sku}' already exists.");
 
         var product = new Product
         {
-            Id           = Guid.NewGuid(),
-            TenantId     = tenantId,
-            CategoryId   = request.CategoryId,
-            Name         = request.Name,
-            Slug         = request.Slug,
-            Description  = request.Description,
-            Price        = request.Price,
+            Id             = Guid.NewGuid(),
+            CategoryId     = request.CategoryId,
+            Name           = request.Name,
+            Slug           = request.Slug,
+            Description    = request.Description,
+            Price          = request.Price,
             CompareAtPrice = request.CompareAtPrice,
-            Sku          = string.IsNullOrWhiteSpace(request.Sku) ? null : request.Sku,
-            OptionsJson  = SerializeProductOptions(request.Colors, request.Sizes),
-            IsActive     = true,
-            IsFeatured   = request.IsFeatured,
-            CreatedAt    = DateTime.UtcNow
+            Sku            = string.IsNullOrWhiteSpace(request.Sku) ? null : request.Sku,
+            OptionsJson    = SerializeProductOptions(request.Colors, request.Sizes),
+            IsActive       = true,
+            IsFeatured     = request.IsFeatured,
+            CreatedAt      = DateTime.UtcNow
         };
 
         _context.Products.Add(product);
 
-        // Always create inventory record alongside the product
         var inventory = new Inventory
         {
             Id                = Guid.NewGuid(),
-            TenantId          = tenantId,
             ProductId         = product.Id,
             Quantity          = request.InitialStock,
             ReservedQuantity  = 0,
@@ -186,8 +167,7 @@ public class ProductService : IProductService
         _context.Inventories.Add(inventory);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Product {ProductId} '{Slug}' created in tenant {TenantId}",
-            product.Id, product.Slug, tenantId);
+        _logger.LogInformation("Product {ProductId} '{Slug}' created", product.Id, product.Slug);
 
         product.Category  = category;
         product.Inventory = inventory;
@@ -197,16 +177,14 @@ public class ProductService : IProductService
 
     public async Task<ProductResponse?> UpdateAsync(Guid id, UpdateProductRequest request)
     {
-        var tenantId = _tenantContext.TenantId;
-        var product  = await FetchFullProductAsync(p => p.Id == id && p.TenantId == tenantId);
+        var product = await FetchFullProductAsync(p => p.Id == id);
 
         if (product is null)
             return null;
 
         if (request.CategoryId.HasValue && request.CategoryId != product.CategoryId)
         {
-            var catExists = await _context.Categories
-                .AnyAsync(c => c.Id == request.CategoryId && c.TenantId == tenantId);
+            var catExists = await _context.Categories.AnyAsync(c => c.Id == request.CategoryId);
             if (!catExists)
                 throw new InvalidOperationException("Category not found.");
             product.CategoryId = request.CategoryId.Value;
@@ -214,7 +192,7 @@ public class ProductService : IProductService
 
         if (request.Slug is not null && request.Slug != product.Slug)
         {
-            if (await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Slug == request.Slug && p.Id != id))
+            if (await _context.Products.AnyAsync(p => p.Slug == request.Slug && p.Id != id))
                 throw new InvalidOperationException($"A product with slug '{request.Slug}' already exists.");
             product.Slug = request.Slug;
         }
@@ -222,7 +200,7 @@ public class ProductService : IProductService
         if (request.Sku is not null && request.Sku != product.Sku)
         {
             if (!string.IsNullOrEmpty(request.Sku) &&
-                await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Sku == request.Sku && p.Id != id))
+                await _context.Products.AnyAsync(p => p.Sku == request.Sku && p.Id != id))
                 throw new InvalidOperationException($"A product with SKU '{request.Sku}' already exists.");
             product.Sku = string.IsNullOrWhiteSpace(request.Sku) ? null : request.Sku;
         }
@@ -242,19 +220,16 @@ public class ProductService : IProductService
         if (request.IsFeatured     is not null) product.IsFeatured     = request.IsFeatured.Value;
         if (request.IsActive       is not null) product.IsActive       = request.IsActive.Value;
 
-        // UpdatedAt is set automatically by DbContext.SaveChangesAsync override
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Product {ProductId} updated in tenant {TenantId}", id, tenantId);
+        _logger.LogInformation("Product {ProductId} updated", id);
 
         return MapToResponse(product);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var tenantId = _tenantContext.TenantId;
-        var product  = await _context.Products
-            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
 
         if (product is null)
             return false;
@@ -262,20 +237,16 @@ public class ProductService : IProductService
         _context.Products.Remove(product);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Product {ProductId} deleted from tenant {TenantId}", id, tenantId);
+        _logger.LogInformation("Product {ProductId} deleted", id);
         return true;
     }
 
     public async Task<ProductImageResponse> AddImageAsync(Guid productId, AddProductImageRequest request)
     {
-        var tenantId = _tenantContext.TenantId;
-
-        var productExists = await _context.Products
-            .AnyAsync(p => p.Id == productId && p.TenantId == tenantId);
+        var productExists = await _context.Products.AnyAsync(p => p.Id == productId);
         if (!productExists)
             throw new InvalidOperationException("Product not found.");
 
-        // Ensure only one primary image
         if (request.IsPrimary)
         {
             await _context.ProductImages
@@ -286,7 +257,6 @@ public class ProductService : IProductService
         var image = new ProductImage
         {
             Id           = Guid.NewGuid(),
-            TenantId     = tenantId,
             ProductId    = productId,
             Url          = request.Url,
             AltText      = request.AltText,
@@ -303,9 +273,8 @@ public class ProductService : IProductService
 
     public async Task<bool> RemoveImageAsync(Guid productId, Guid imageId)
     {
-        var tenantId = _tenantContext.TenantId;
-        var image    = await _context.ProductImages
-            .FirstOrDefaultAsync(i => i.Id == imageId && i.ProductId == productId && i.TenantId == tenantId);
+        var image = await _context.ProductImages
+            .FirstOrDefaultAsync(i => i.Id == imageId && i.ProductId == productId);
 
         if (image is null)
             return false;
@@ -317,18 +286,13 @@ public class ProductService : IProductService
 
     public async Task<InventoryResponse?> GetInventoryAsync(Guid productId)
     {
-        var tenantId  = _tenantContext.TenantId;
-        var inventory = await _context.Inventories
-            .FirstOrDefaultAsync(i => i.ProductId == productId && i.TenantId == tenantId);
-
+        var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductId == productId);
         return inventory is null ? null : MapInventoryToResponse(inventory);
     }
 
     public async Task<InventoryResponse?> UpdateInventoryAsync(Guid productId, UpdateInventoryRequest request)
     {
-        var tenantId  = _tenantContext.TenantId;
-        var inventory = await _context.Inventories
-            .FirstOrDefaultAsync(i => i.ProductId == productId && i.TenantId == tenantId);
+        var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductId == productId);
 
         if (inventory is null)
             return null;
@@ -338,12 +302,10 @@ public class ProductService : IProductService
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Inventory updated for product {ProductId} in tenant {TenantId}", productId, tenantId);
+        _logger.LogInformation("Inventory updated for product {ProductId}", productId);
 
         return MapInventoryToResponse(inventory);
     }
-
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     private Task<Product?> FetchFullProductAsync(System.Linq.Expressions.Expression<Func<Product, bool>> predicate)
         => _context.Products
@@ -429,7 +391,7 @@ public class ProductService : IProductService
         var options = new ProductOptions
         {
             Colors = colors ?? new List<string>(),
-            Sizes = sizes ?? new List<string>()
+            Sizes  = sizes  ?? new List<string>()
         };
 
         return JsonSerializer.Serialize(options);

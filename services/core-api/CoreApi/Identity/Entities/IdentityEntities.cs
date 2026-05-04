@@ -39,10 +39,7 @@ public class User : BaseEntity
 public class Role : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
-    
-    // Nullable for system roles (Admin, Staff, Customer)
-    public new Guid? TenantId { get; set; }
-    
+
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }
 

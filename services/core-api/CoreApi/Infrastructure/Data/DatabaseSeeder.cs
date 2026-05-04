@@ -1,3 +1,5 @@
+using System.Text.Json;
+using CoreApi.Catalog.Entities;
 using CoreApi.Domain.Entities;
 using CoreApi.Identity.Entities;
 using CoreApi.Infrastructure.Persistence;
@@ -37,43 +39,19 @@ public static class DatabaseSeeder
 
     public static async Task SeedAsync(ApplicationDbContext context)
     {
-        // Apply any pending migrations (creates the DB if it doesn't exist).
         await context.Database.MigrateAsync();
 
-        if (await context.Tenants.AnyAsync())
+        if (await context.Roles.AnyAsync())
         {
-            // Existing database — only backfill missing site settings.
             await SeedMissingSettingsAsync(context);
             return;
         }
 
-        // ==================== TENANT ====================
-
-        var tenant = new Tenant
-        {
-            Id        = Guid.NewGuid(),
-            Slug      = "tenant1",
-            CreatedAt = DateTime.UtcNow
-        };
-        context.Tenants.Add(tenant);
-
-        context.TenantDomains.Add(new TenantDomain
-        {
-            Id                = Guid.NewGuid(),
-            TenantId          = tenant.Id,
-            Domain            = "tenant1.mbftech.com",
-            Type              = DomainType.Primary,
-            Status            = DomainStatus.Verified,
-            VerificationToken = Guid.NewGuid().ToString("N"),
-            CreatedAt         = DateTime.UtcNow,
-            VerifiedAt        = DateTime.UtcNow
-        });
-
         // ==================== ROLES ====================
 
-        var adminRole = new Role { Id = Guid.NewGuid(), Name = "Admin",    TenantId = null, CreatedAt = DateTime.UtcNow };
-        var staffRole = new Role { Id = Guid.NewGuid(), Name = "Staff",    TenantId = null, CreatedAt = DateTime.UtcNow };
-        var customerRole = new Role { Id = Guid.NewGuid(), Name = "Customer", TenantId = null, CreatedAt = DateTime.UtcNow };
+        var adminRole    = new Role { Id = Guid.NewGuid(), Name = "Admin",    CreatedAt = DateTime.UtcNow };
+        var staffRole    = new Role { Id = Guid.NewGuid(), Name = "Staff",    CreatedAt = DateTime.UtcNow };
+        var customerRole = new Role { Id = Guid.NewGuid(), Name = "Customer", CreatedAt = DateTime.UtcNow };
         context.Roles.AddRange(adminRole, staffRole, customerRole);
 
         // ==================== ADMIN USER ====================
@@ -81,8 +59,7 @@ public static class DatabaseSeeder
         var adminUser = new User
         {
             Id        = Guid.NewGuid(),
-            TenantId  = tenant.Id,
-            Email     = "admin@tenant1.com",
+            Email     = "admin@magaza.com",
             IsActive  = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -97,7 +74,6 @@ public static class DatabaseSeeder
         {
             context.SiteSettings.Add(new SiteSetting
             {
-                TenantId  = tenant.Id,
                 Key       = key,
                 Value     = value,
                 UpdatedAt = DateTime.UtcNow,
@@ -108,79 +84,52 @@ public static class DatabaseSeeder
 
         var topCategory = new Category
         {
-            Id          = Guid.NewGuid(),
-            TenantId    = tenant.Id,
-            Name        = "Üst Giyim",
-            Slug        = "ust-giyim",
-            Description = "Tişörtler, gömlekler ve diğer üst giyim",
+            Id           = Guid.NewGuid(),
+            Name         = "Üst Giyim",
+            Slug         = "ust-giyim",
+            Description  = "Tişörtler, gömlekler ve diğer üst giyim",
             DisplayOrder = 1,
-            CreatedAt   = DateTime.UtcNow
+            CreatedAt    = DateTime.UtcNow
         };
         context.Categories.Add(topCategory);
 
         var product = new Product
         {
-            Id              = Guid.NewGuid(),
-            TenantId        = tenant.Id,
-            CategoryId      = topCategory.Id,
-            Name            = "Premium Pamuklu Tişört",
-            Slug            = "premium-pamuklu-tisort",
-            Description     = "%100 Organik Pamuk, Yumuşak ve Rahat, Tüm Sezonlar İçin Uygun",
-            Price           = 299.99m,
-            CompareAtPrice  = 399.99m,
-            Sku             = "TSHIRT-001",
-            IsActive        = true,
-            IsFeatured      = true,
-            OptionsJson     = JsonSerializer.Serialize(new { Colors = new[] { "Beyaz", "Siyah", "Gri", "Mavi" }, Sizes = new[] { "XS", "S", "M", "L", "XL", "XXL" } }),
-            CreatedAt       = DateTime.UtcNow
+            Id             = Guid.NewGuid(),
+            CategoryId     = topCategory.Id,
+            Name           = "Premium Pamuklu Tişört",
+            Slug           = "premium-pamuklu-tisort",
+            Description    = "%100 Organik Pamuk, Yumuşak ve Rahat, Tüm Sezonlar İçin Uygun",
+            Price          = 299.99m,
+            CompareAtPrice = 399.99m,
+            Sku            = "TSHIRT-001",
+            IsActive       = true,
+            IsFeatured     = true,
+            OptionsJson    = JsonSerializer.Serialize(new { Colors = new[] { "Beyaz", "Siyah", "Gri", "Mavi" }, Sizes = new[] { "XS", "S", "M", "L", "XL", "XXL" } }),
+            CreatedAt      = DateTime.UtcNow
         };
         context.Products.Add(product);
 
-        var inventory = new Inventory
+        context.Inventories.Add(new Inventory
         {
-            Id                  = Guid.NewGuid(),
-            TenantId            = tenant.Id,
-            ProductId           = product.Id,
-            Quantity            = 100,
-            ReservedQuantity    = 0,
-            LowStockThreshold   = 10,
-            CreatedAt           = DateTime.UtcNow
-        };
-        context.Inventories.Add(inventory);
+            Id                = Guid.NewGuid(),
+            ProductId         = product.Id,
+            Quantity          = 100,
+            ReservedQuantity  = 0,
+            LowStockThreshold = 10,
+            CreatedAt         = DateTime.UtcNow
+        });
 
         await context.SaveChangesAsync();
 
-        Console.WriteLine($"[Seed] Tenant  : {tenant.Slug} ({tenant.Id})");
         Console.WriteLine($"[Seed] Admin   : {adminUser.Email}");
         Console.WriteLine($"[Seed] Settings: {DefaultSettings.Count} defaults seeded");
-        Console.WriteLine($"[Seed] Products: 1 product with options seeded");
-        return;
-
-        // Old settings loop - commented out
-        /*
-        foreach (var (key, value) in DefaultSettings)
-        {
-            context.SiteSettings.Add(new SiteSetting
-            {
-                TenantId  = tenant.Id,
-                Key       = key,
-                Value     = value,
-                UpdatedAt = DateTime.UtcNow,
-            });
-        }
+        Console.WriteLine($"[Seed] Products: 1 product seeded");
     }
 
-    /// <summary>For existing databases: insert any default setting keys that are not yet present.</summary>
     private static async Task SeedMissingSettingsAsync(ApplicationDbContext context)
     {
-        var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Slug == "tenant1");
-        if (tenant is null) return;
-
-        var existingKeysList = await context.SiteSettings
-            .Where(s => s.TenantId == tenant.Id)
-            .Select(s => s.Key)
-            .ToListAsync();
-        var existingKeys = existingKeysList.ToHashSet();
+        var existingKeys = (await context.SiteSettings.Select(s => s.Key).ToListAsync()).ToHashSet();
 
         var missing = DefaultSettings.Where(kv => !existingKeys.Contains(kv.Key)).ToList();
         if (missing.Count == 0) return;
@@ -189,7 +138,6 @@ public static class DatabaseSeeder
         {
             context.SiteSettings.Add(new SiteSetting
             {
-                TenantId  = tenant.Id,
                 Key       = key,
                 Value     = value,
                 UpdatedAt = DateTime.UtcNow,

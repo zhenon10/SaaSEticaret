@@ -14,7 +14,7 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   params?: Record<string, string | number | boolean | undefined | null>;
 }
 
-export function createApiClient(baseUrl: string, tenantSlug?: string) {
+export function createApiClient(baseUrl: string) {
   async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const { body, params, headers, ...rest } = options;
 
@@ -33,7 +33,6 @@ export function createApiClient(baseUrl: string, tenantSlug?: string) {
       credentials: 'include',
       headers: {
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-        ...(tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}),
         ...(headers as Record<string, string>),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,

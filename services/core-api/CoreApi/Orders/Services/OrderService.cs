@@ -1,4 +1,3 @@
-using CoreApi.Application.Tenancy;
 using CoreApi.Catalog.Entities;
 using CoreApi.Orders.DTOs;
 using CoreApi.Orders.Entities;
@@ -20,30 +19,24 @@ public interface IOrderService
 public class OrderService : IOrderService
 {
     private readonly ApplicationDbContext _context;
-    private readonly ITenantContext _tenantContext;
     private readonly ICartService _cartService;
     private readonly ILogger<OrderService> _logger;
 
     public OrderService(
         ApplicationDbContext context,
-        ITenantContext tenantContext,
         ICartService cartService,
         ILogger<OrderService> logger)
     {
-        _context      = context;
-        _tenantContext = tenantContext;
-        _cartService  = cartService;
-        _logger       = logger;
+        _context     = context;
+        _cartService = cartService;
+        _logger      = logger;
     }
 
     public async Task<OrderResponse> CheckoutAsync(Guid userId, CheckoutRequest request)
     {
-        var tenantId = _tenantContext.TenantId;
-
-        // Load cart with full product + inventory data
         var cart = await _context.Carts
             .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.UserId == userId && c.TenantId == tenantId);
+            .FirstOrDefaultAsync(c => c.UserId == userId);
 
         if (cart is null || !cart.Items.Any())
             throw new InvalidOperationException("Cart is empty.");
@@ -51,10 +44,9 @@ public class OrderService : IOrderService
         var productIds = cart.Items.Select(i => i.ProductId).ToList();
         var products = await _context.Products
             .Include(p => p.Inventory)
-            .Where(p => productIds.Contains(p.Id) && p.TenantId == tenantId)
+            .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
 
-        // Validate all items
         var validationErrors = new List<string>();
         foreach (var item in cart.Items)
         {
@@ -76,8 +68,7 @@ public class OrderService : IOrderService
         if (validationErrors.Count > 0)
             throw new InvalidOperationException(string.Join(" | ", validationErrors));
 
-        // Build order number: tenant-scoped sequential
-        var orderSeq    = await _context.Orders.CountAsync(o => o.TenantId == tenantId) + 1;
+        var orderSeq    = await _context.Orders.CountAsync() + 1;
         var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMM}-{orderSeq:D6}";
 
         var shipping = MapAddress(request.ShippingAddress);
@@ -85,14 +76,11 @@ public class OrderService : IOrderService
             ? MapAddress(request.BillingAddress)
             : MapAddress(request.ShippingAddress);
 
-        // Calculate totals (tax / shipping can be extended here)
         var subtotal = cart.Items.Sum(i => i.UnitPrice * i.Quantity);
-        var total    = subtotal; // + taxAmount + shippingAmount - discountAmount
 
         var order = new Order
         {
             Id              = Guid.NewGuid(),
-            TenantId        = tenantId,
             UserId          = userId,
             OrderNumber     = orderNumber,
             Status          = OrderStatus.Pending,
@@ -101,14 +89,13 @@ public class OrderService : IOrderService
             DiscountAmount  = 0,
             TaxAmount       = 0,
             ShippingAmount  = 0,
-            TotalAmount     = total,
+            TotalAmount     = subtotal,
             Notes           = request.Notes,
             ShippingAddress = shipping,
             BillingAddress  = billing,
             CreatedAt       = DateTime.UtcNow
         };
 
-        // Create order items + reserve inventory atomically
         foreach (var item in cart.Items)
         {
             var product = products[item.ProductId];
@@ -116,7 +103,6 @@ public class OrderService : IOrderService
             order.Items.Add(new OrderItem
             {
                 Id          = Guid.NewGuid(),
-                TenantId    = tenantId,
                 OrderId     = order.Id,
                 ProductId   = item.ProductId,
                 ProductName = product.Name,
@@ -127,19 +113,15 @@ public class OrderService : IOrderService
                 CreatedAt   = DateTime.UtcNow
             });
 
-            // Reserve stock
             product.Inventory!.ReservedQuantity += item.Quantity;
         }
 
         _context.Orders.Add(order);
-
-        // Clear cart
         _context.CartItems.RemoveRange(cart.Items);
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Order {OrderNumber} created for user {UserId} in tenant {TenantId}",
-            orderNumber, userId, tenantId);
+        _logger.LogInformation("Order {OrderNumber} created for user {UserId}", orderNumber, userId);
 
         return MapToResponse(order);
     }
@@ -148,7 +130,7 @@ public class OrderService : IOrderService
     {
         var order = await FetchOrderAsync(o => o.Id == orderId);
         if (order is null) return null;
-        if (!isStaff && order.UserId != userId) return null; // Users see only their own orders
+        if (!isStaff && order.UserId != userId) return null;
         return MapToResponse(order);
     }
 
@@ -162,13 +144,8 @@ public class OrderService : IOrderService
 
     public async Task<PagedResult<OrderListItem>> GetPagedAsync(Guid userId, bool isStaff, OrderQueryFilter filter)
     {
-        var tenantId = _tenantContext.TenantId;
+        var query = _context.Orders.AsQueryable();
 
-        var query = _context.Orders
-            .Where(o => o.TenantId == tenantId)
-            .AsQueryable();
-
-        // Non-staff see only their own orders; staff may filter by user
         if (!isStaff)
             query = query.Where(o => o.UserId == userId);
         else if (filter.UserId.HasValue)
@@ -214,8 +191,7 @@ public class OrderService : IOrderService
 
     public async Task<OrderResponse?> UpdateStatusAsync(Guid orderId, UpdateOrderStatusRequest request)
     {
-        var tenantId = _tenantContext.TenantId;
-        var order    = await FetchOrderAsync(o => o.Id == orderId);
+        var order = await FetchOrderAsync(o => o.Id == orderId);
         if (order is null) return null;
 
         ValidateStatusTransition(order.Status, request.Status);
@@ -226,13 +202,10 @@ public class OrderService : IOrderService
         if (request.Status is OrderStatus.Cancelled or OrderStatus.Refunded)
             order.CancelReason = request.Reason;
 
-        // Inventory adjustments on status change
         await AdjustInventoryAsync(order, previousStatus, request.Status);
-
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Order {OrderNumber} status changed {From} → {To} in tenant {TenantId}",
-            order.OrderNumber, previousStatus, request.Status, tenantId);
+        _logger.LogInformation("Order {OrderNumber} status: {From} → {To}", order.OrderNumber, previousStatus, request.Status);
 
         return MapToResponse(order);
     }
@@ -247,9 +220,9 @@ public class OrderService : IOrderService
             OrderStatus.Cancelled or OrderStatus.Refunded)
             throw new InvalidOperationException($"Cannot cancel an order in '{order.Status}' status.");
 
-        var previousStatus  = order.Status;
-        order.Status        = OrderStatus.Cancelled;
-        order.CancelReason  = reason;
+        var previousStatus = order.Status;
+        order.Status       = OrderStatus.Cancelled;
+        order.CancelReason = reason;
 
         await AdjustInventoryAsync(order, previousStatus, OrderStatus.Cancelled);
         await _context.SaveChangesAsync();
@@ -257,8 +230,6 @@ public class OrderService : IOrderService
         _logger.LogInformation("Order {OrderNumber} cancelled by user {UserId}", order.OrderNumber, userId);
         return MapToResponse(order);
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static readonly Dictionary<OrderStatus, IReadOnlySet<OrderStatus>> _allowedTransitions = new()
     {
@@ -274,49 +245,39 @@ public class OrderService : IOrderService
     private static void ValidateStatusTransition(OrderStatus current, OrderStatus next)
     {
         if (!_allowedTransitions.TryGetValue(current, out var allowed) || !allowed.Contains(next))
-            throw new InvalidOperationException(
-                $"Cannot transition order from '{current}' to '{next}'.");
+            throw new InvalidOperationException($"Cannot transition order from '{current}' to '{next}'.");
     }
 
     private async Task AdjustInventoryAsync(Order order, OrderStatus from, OrderStatus to)
     {
-        var tenantId   = _tenantContext.TenantId;
-        var productIds = order.Items.Select(i => i.ProductId).ToList();
+        var productIds  = order.Items.Select(i => i.ProductId).ToList();
         var inventories = await _context.Inventories
-            .Where(inv => productIds.Contains(inv.ProductId) && inv.TenantId == tenantId)
+            .Where(inv => productIds.Contains(inv.ProductId))
             .ToDictionaryAsync(inv => inv.ProductId);
 
         foreach (var item in order.Items)
         {
             if (!inventories.TryGetValue(item.ProductId, out var inv)) continue;
 
-            // On cancellation or refund: release the reservation
             if (to is OrderStatus.Cancelled or OrderStatus.Refunded)
             {
                 inv.ReservedQuantity = Math.Max(0, inv.ReservedQuantity - item.Quantity);
-
-                // On refund: also restore actual stock
                 if (to == OrderStatus.Refunded)
                     inv.Quantity += item.Quantity;
             }
 
-            // On delivery: consume reserved stock into actual fulfillment
             if (to == OrderStatus.Delivered)
             {
-                inv.Quantity          = Math.Max(0, inv.Quantity - item.Quantity);
-                inv.ReservedQuantity  = Math.Max(0, inv.ReservedQuantity - item.Quantity);
+                inv.Quantity         = Math.Max(0, inv.Quantity - item.Quantity);
+                inv.ReservedQuantity = Math.Max(0, inv.ReservedQuantity - item.Quantity);
             }
         }
     }
 
     private Task<Order?> FetchOrderAsync(System.Linq.Expressions.Expression<Func<Order, bool>> predicate)
-    {
-        var tenantId = _tenantContext.TenantId;
-        return _context.Orders
+        => _context.Orders
             .Include(o => o.Items)
-            .Where(o => o.TenantId == tenantId)
             .FirstOrDefaultAsync(predicate);
-    }
 
     private static Address MapAddress(AddressDto dto) => new()
     {
@@ -375,8 +336,6 @@ public class OrderService : IOrderService
         }).ToList()
     };
 }
-
-// ── Shared paged result (reused from Catalog) ─────────────────────────────────
 
 public class PagedResult<T>
 {

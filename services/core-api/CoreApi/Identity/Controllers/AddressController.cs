@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using CoreApi.Application.Tenancy;
 using CoreApi.Identity.DTOs;
 using CoreApi.Identity.Entities;
 using CoreApi.Infrastructure.Persistence;
@@ -15,35 +14,26 @@ namespace CoreApi.Identity.Controllers;
 public class AddressController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
-    private readonly ITenantContext _tenantContext;
 
-    public AddressController(ApplicationDbContext context, ITenantContext tenantContext)
+    public AddressController(ApplicationDbContext context)
     {
         _context = context;
-        _tenantContext = tenantContext;
     }
 
-    private (Guid userId, Guid tenantId)? GetClaims()
+    private Guid? GetUserId()
     {
-        var userIdStr   = User.FindFirstValue("sub");
-        var tenantIdStr = User.FindFirstValue("tid");
-        if (!Guid.TryParse(userIdStr, out var userId) || !Guid.TryParse(tenantIdStr, out var tenantId))
-            return null;
-        if (!_tenantContext.IsSet || _tenantContext.TenantId != tenantId)
-            return null;
-        return (userId, tenantId);
+        var claim = User.FindFirstValue("sub");
+        return Guid.TryParse(claim, out var id) ? id : null;
     }
 
-    /// <summary>GET /addresses</summary>
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var claims = GetClaims();
-        if (claims is null) return Forbid();
-        var (userId, tenantId) = claims.Value;
+        var userId = GetUserId();
+        if (userId is null) return Forbid();
 
         var addresses = await _context.UserAddresses
-            .Where(a => a.UserId == userId && a.TenantId == tenantId)
+            .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.IsDefault)
             .ThenBy(a => a.CreatedAt)
             .Select(a => ToResponse(a))
@@ -52,24 +42,21 @@ public class AddressController : ControllerBase
         return Ok(addresses);
     }
 
-    /// <summary>POST /addresses</summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] AddressRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var claims = GetClaims();
-        if (claims is null) return Forbid();
-        var (userId, tenantId) = claims.Value;
+        var userId = GetUserId();
+        if (userId is null) return Forbid();
 
         if (request.IsDefault)
-            await ClearDefault(userId, tenantId);
+            await ClearDefault(userId.Value);
 
         var address = new UserAddress
         {
             Id         = Guid.NewGuid(),
-            TenantId   = tenantId,
-            UserId     = userId,
+            UserId     = userId.Value,
             Label      = request.Label,
             FullName   = request.FullName,
             Phone      = request.Phone,
@@ -83,8 +70,7 @@ public class AddressController : ControllerBase
             CreatedAt  = DateTime.UtcNow,
         };
 
-        // İlk adres otomatik varsayılan
-        var hasAny = await _context.UserAddresses.AnyAsync(a => a.UserId == userId && a.TenantId == tenantId);
+        var hasAny = await _context.UserAddresses.AnyAsync(a => a.UserId == userId);
         if (!hasAny) address.IsDefault = true;
 
         _context.UserAddresses.Add(address);
@@ -93,23 +79,21 @@ public class AddressController : ControllerBase
         return Ok(ToResponse(address));
     }
 
-    /// <summary>PUT /addresses/{id}</summary>
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] AddressRequest request)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var claims = GetClaims();
-        if (claims is null) return Forbid();
-        var (userId, tenantId) = claims.Value;
+        var userId = GetUserId();
+        if (userId is null) return Forbid();
 
         var address = await _context.UserAddresses
-            .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId && a.TenantId == tenantId);
+            .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
 
         if (address is null) return NotFound();
 
         if (request.IsDefault)
-            await ClearDefault(userId, tenantId);
+            await ClearDefault(userId.Value);
 
         address.Label      = request.Label;
         address.FullName   = request.FullName;
@@ -126,27 +110,24 @@ public class AddressController : ControllerBase
         return Ok(ToResponse(address));
     }
 
-    /// <summary>DELETE /addresses/{id}</summary>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var claims = GetClaims();
-        if (claims is null) return Forbid();
-        var (userId, tenantId) = claims.Value;
+        var userId = GetUserId();
+        if (userId is null) return Forbid();
 
         var address = await _context.UserAddresses
-            .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId && a.TenantId == tenantId);
+            .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
 
         if (address is null) return NotFound();
 
         _context.UserAddresses.Remove(address);
         await _context.SaveChangesAsync();
 
-        // Silinen varsayılansa başkasını varsayılan yap
         if (address.IsDefault)
         {
             var next = await _context.UserAddresses
-                .Where(a => a.UserId == userId && a.TenantId == tenantId)
+                .Where(a => a.UserId == userId)
                 .OrderBy(a => a.CreatedAt)
                 .FirstOrDefaultAsync();
             if (next is not null)
@@ -159,30 +140,28 @@ public class AddressController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>PUT /addresses/{id}/default</summary>
     [HttpPut("{id:guid}/default")]
     public async Task<IActionResult> SetDefault(Guid id)
     {
-        var claims = GetClaims();
-        if (claims is null) return Forbid();
-        var (userId, tenantId) = claims.Value;
+        var userId = GetUserId();
+        if (userId is null) return Forbid();
 
         var address = await _context.UserAddresses
-            .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId && a.TenantId == tenantId);
+            .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
 
         if (address is null) return NotFound();
 
-        await ClearDefault(userId, tenantId);
+        await ClearDefault(userId.Value);
         address.IsDefault = true;
         await _context.SaveChangesAsync();
 
         return Ok(ToResponse(address));
     }
 
-    private async Task ClearDefault(Guid userId, Guid tenantId)
+    private async Task ClearDefault(Guid userId)
     {
         var defaults = await _context.UserAddresses
-            .Where(a => a.UserId == userId && a.TenantId == tenantId && a.IsDefault)
+            .Where(a => a.UserId == userId && a.IsDefault)
             .ToListAsync();
         foreach (var a in defaults) a.IsDefault = false;
     }

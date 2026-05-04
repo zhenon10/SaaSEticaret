@@ -16,8 +16,8 @@ import { createOrderService } from './services/orders';
 import { createSettingsService } from './services/settings';
 import { createAddressService } from './services/addresses';
 
-export function createSaaSClient(baseUrl: string, tenantSlug?: string) {
-  const client = createApiClient(baseUrl, tenantSlug);
+export function createSaaSClient(baseUrl: string) {
+  const client = createApiClient(baseUrl);
   return {
     auth:      createAuthService(client),
     catalog:   createCatalogService(client),
@@ -31,7 +31,6 @@ export function createSaaSClient(baseUrl: string, tenantSlug?: string) {
       const res = await fetch(`${baseUrl}/upload`, {
         method: 'POST',
         credentials: 'include',
-        headers: tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {},
         body: form,
       });
       if (!res.ok) throw new Error('Yükleme başarısız.');

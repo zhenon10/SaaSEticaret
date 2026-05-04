@@ -13,10 +13,6 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    // ── Tenant ───────────────────────────────────────────────────────────────
-    public DbSet<Tenant>       Tenants       => Set<Tenant>();
-    public DbSet<TenantDomain> TenantDomains => Set<TenantDomain>();
-
     // ── Identity ─────────────────────────────────────────────────────────────
     public DbSet<User>        Users         => Set<User>();
     public DbSet<Role>        Roles         => Set<Role>();
@@ -39,7 +35,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<Order>     Orders     => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
-    // Auto-stamp UpdatedAt on every save for audited entities
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
@@ -55,41 +50,6 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // ==================== TENANT MODULE ====================
-
-        modelBuilder.Entity<Tenant>(entity =>
-        {
-            entity.ToTable("tenants");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Slug).HasColumnName("slug").HasMaxLength(100).IsRequired();
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-
-            entity.HasIndex(e => e.Slug).IsUnique();
-        });
-
-        modelBuilder.Entity<TenantDomain>(entity =>
-        {
-            entity.ToTable("tenant_domains");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
-            entity.Property(e => e.Domain).HasColumnName("domain").HasMaxLength(255).IsRequired();
-            entity.Property(e => e.Type).HasColumnName("type").HasConversion<string>();
-            entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>();
-            entity.Property(e => e.VerificationToken).HasColumnName("verification_token").HasMaxLength(500);
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            entity.Property(e => e.VerifiedAt).HasColumnName("verified_at");
-
-            entity.HasIndex(e => e.Domain).IsUnique();
-            entity.HasIndex(e => e.Status);
-
-            entity.HasOne(e => e.Tenant)
-                .WithMany(t => t.Domains)
-                .HasForeignKey(e => e.TenantId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
         // ==================== IDENTITY MODULE ====================
 
         modelBuilder.Entity<User>(entity =>
@@ -97,7 +57,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("users");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.Email).HasColumnName("email").HasMaxLength(255).IsRequired();
             entity.Property(e => e.PasswordHash).HasColumnName("password_hash").HasMaxLength(500).IsRequired();
             entity.Property(e => e.FirstName).HasColumnName("first_name").HasMaxLength(100);
@@ -108,7 +67,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
-            entity.HasIndex(e => new { e.TenantId, e.Email }).IsUnique();
+            entity.HasIndex(e => e.Email).IsUnique();
 
             entity.HasMany(e => e.UserRoles)
                 .WithOne(ur => ur.User)
@@ -131,7 +90,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("user_addresses");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Label).HasColumnName("label").HasMaxLength(100).IsRequired();
             entity.Property(e => e.FullName).HasColumnName("full_name").HasMaxLength(200).IsRequired();
@@ -145,7 +103,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.IsDefault).HasColumnName("is_default");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
-            entity.HasIndex(e => new { e.TenantId, e.UserId });
+            entity.HasIndex(e => e.UserId);
         });
 
         modelBuilder.Entity<Role>(entity =>
@@ -153,11 +111,10 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("roles");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
-            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Name).IsUnique();
 
             entity.HasMany(e => e.UserRoles)
                 .WithOne(ur => ur.Role)
@@ -178,7 +135,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("refresh_tokens");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Token).HasColumnName("token").HasMaxLength(500).IsRequired();
             entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
@@ -198,7 +154,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("categories");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
             entity.Property(e => e.Slug).HasColumnName("slug").HasMaxLength(200).IsRequired();
             entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(2000);
@@ -207,12 +162,9 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.IsActive).HasColumnName("is_active");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
-            // Unique slug per tenant
-            entity.HasIndex(e => new { e.TenantId, e.Slug }).IsUnique();
-            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => e.Slug).IsUnique();
             entity.HasIndex(e => e.IsActive);
 
-            // Self-referencing hierarchy
             entity.HasOne(e => e.Parent)
                 .WithMany(e => e.Children)
                 .HasForeignKey(e => e.ParentId)
@@ -224,7 +176,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("products");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.CategoryId).HasColumnName("category_id");
             entity.Property(e => e.Name).HasColumnName("name").HasMaxLength(300).IsRequired();
             entity.Property(e => e.Slug).HasColumnName("slug").HasMaxLength(300).IsRequired();
@@ -238,13 +189,8 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
-            // Unique slug per tenant
-            entity.HasIndex(e => new { e.TenantId, e.Slug }).IsUnique();
-            // Unique SKU per tenant (filter on non-null)
-            entity.HasIndex(e => new { e.TenantId, e.Sku })
-                .IsUnique()
-                .HasFilter("sku IS NOT NULL");
-            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.Sku).IsUnique().HasFilter("sku IS NOT NULL");
             entity.HasIndex(e => e.IsActive);
             entity.HasIndex(e => e.IsFeatured);
             entity.HasIndex(e => e.Price);
@@ -270,7 +216,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("product_images");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
             entity.Property(e => e.Url).HasColumnName("url").HasMaxLength(2048).IsRequired();
             entity.Property(e => e.AltText).HasColumnName("alt_text").HasMaxLength(300);
@@ -287,7 +232,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("inventories");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
             entity.Property(e => e.Quantity).HasColumnName("quantity");
             entity.Property(e => e.ReservedQuantity).HasColumnName("reserved_quantity");
@@ -295,9 +239,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
-            // One-to-one; product_id is unique
             entity.HasIndex(e => e.ProductId).IsUnique();
-            entity.HasIndex(e => e.TenantId);
         });
 
         // ==================== SITE SETTINGS MODULE ====================
@@ -307,12 +249,11 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("site_settings");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.Key).HasColumnName("key").HasMaxLength(200).IsRequired();
             entity.Property(e => e.Value).HasColumnName("value").HasColumnType("text");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
-            entity.HasIndex(e => new { e.TenantId, e.Key }).IsUnique();
+            entity.HasIndex(e => e.Key).IsUnique();
         });
 
         // ==================== ORDER MODULE ====================
@@ -322,13 +263,11 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("carts");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
-            // One active cart per user per tenant
-            entity.HasIndex(e => new { e.TenantId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.UserId).IsUnique();
 
             entity.HasMany(e => e.Items)
                 .WithOne(i => i.Cart)
@@ -341,7 +280,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("cart_items");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.CartId).HasColumnName("cart_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
             entity.Property(e => e.Color).HasColumnName("color").HasMaxLength(100);
@@ -359,7 +297,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("orders");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.OrderNumber).HasColumnName("order_number").HasMaxLength(50).IsRequired();
             entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(30);
@@ -374,12 +311,11 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
-            entity.HasIndex(e => new { e.TenantId, e.OrderNumber }).IsUnique();
-            entity.HasIndex(e => new { e.TenantId, e.UserId });
+            entity.HasIndex(e => e.OrderNumber).IsUnique();
+            entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
 
-            // Owned address types — stored as flat columns in the orders table
             entity.OwnsOne(e => e.ShippingAddress, addr =>
             {
                 addr.Property(a => a.FullName).HasColumnName("shipping_full_name").HasMaxLength(200);
@@ -417,7 +353,6 @@ public class ApplicationDbContext : DbContext
             entity.ToTable("order_items");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.TenantId).HasColumnName("tenant_id");
             entity.Property(e => e.OrderId).HasColumnName("order_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
             entity.Property(e => e.ProductName).HasColumnName("product_name").HasMaxLength(300).IsRequired();

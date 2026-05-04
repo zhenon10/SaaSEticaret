@@ -1,11 +1,9 @@
 using System.Text;
-using CoreApi.Application.Tenancy;
 using CoreApi.Catalog.Services;
 using CoreApi.Identity.Entities;
 using CoreApi.Orders.Services;
 using CoreApi.Identity.Services;
 using CoreApi.Infrastructure.Data;
-using CoreApi.Infrastructure.Middleware;
 using CoreApi.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -17,11 +15,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
-
-// ==================== TENANCY ====================
-
-builder.Services.AddScoped<ITenantContext, TenantContext>();
-builder.Services.AddScoped<ITenantResolver, TenantResolver>();
 
 // ==================== IDENTITY ====================
 
@@ -116,11 +109,9 @@ builder.Services.AddAuthorization(options =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseNpgsql(connectionString);
-    var tenantContext = sp.GetRequiredService<ITenantContext>();
-    options.AddInterceptors(new TenantFilterInterceptor(tenantContext));
 });
 
 // ==================== CORS ====================
@@ -174,20 +165,11 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = ""
 });
 
-// CRITICAL ORDER: tenant context must be populated before authentication so that
-// _tenantContext.IsSet is true when AuthService validates tenant claims in controllers.
-app.UseTenantResolution();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "core-api" }))
     .WithName("HealthCheck");
-
-app.MapGet("/health/tenant", (ITenantContext tenantContext) =>
-    tenantContext.IsSet
-        ? Results.Ok(new { tenantId = tenantContext.TenantId, tenantSlug = tenantContext.TenantSlug })
-        : Results.NotFound(new { error = "No tenant context" }))
-    .WithName("TenantHealthCheck");
 
 app.MapControllers();
 

@@ -1,4 +1,3 @@
-using CoreApi.Application.Tenancy;
 using CoreApi.Orders.DTOs;
 using CoreApi.Orders.Entities;
 using CoreApi.Infrastructure.Persistence;
@@ -8,27 +7,24 @@ namespace CoreApi.Orders.Services;
 
 public interface ICartService
 {
-    Task<CartResponse>  GetCartAsync(Guid userId);
-    Task<CartResponse>  AddItemAsync(Guid userId, AddToCartRequest request);
+    Task<CartResponse>   GetCartAsync(Guid userId);
+    Task<CartResponse>   AddItemAsync(Guid userId, AddToCartRequest request);
     Task<CartResponse?>  UpdateItemAsync(Guid userId, Guid itemId, UpdateCartItemRequest request);
     Task<CartResponse?>  RemoveItemAsync(Guid userId, Guid itemId);
-    Task                ClearCartAsync(Guid userId);
+    Task                 ClearCartAsync(Guid userId);
 }
 
 public class CartService : ICartService
 {
     private readonly ApplicationDbContext _context;
-    private readonly ITenantContext _tenantContext;
     private readonly ILogger<CartService> _logger;
 
     public CartService(
         ApplicationDbContext context,
-        ITenantContext tenantContext,
         ILogger<CartService> logger)
     {
-        _context       = context;
-        _tenantContext = tenantContext;
-        _logger        = logger;
+        _context = context;
+        _logger  = logger;
     }
 
     public async Task<CartResponse> GetCartAsync(Guid userId)
@@ -39,12 +35,9 @@ public class CartService : ICartService
 
     public async Task<CartResponse> AddItemAsync(Guid userId, AddToCartRequest request)
     {
-        var tenantId = _tenantContext.TenantId;
-
-        // Validate product
         var product = await _context.Products
             .Include(p => p.Inventory)
-            .FirstOrDefaultAsync(p => p.Id == request.ProductId && p.TenantId == tenantId && p.IsActive);
+            .FirstOrDefaultAsync(p => p.Id == request.ProductId && p.IsActive);
 
         if (product is null)
             throw new InvalidOperationException("Product not found or inactive.");
@@ -55,7 +48,6 @@ public class CartService : ICartService
 
         var cart = await GetOrCreateCartAsync(userId);
 
-        // If product already in cart — merge quantities
         var existing = cart.Items.FirstOrDefault(i =>
             i.ProductId == request.ProductId &&
             string.Equals(i.Color, request.Color, StringComparison.OrdinalIgnoreCase) &&
@@ -73,7 +65,6 @@ public class CartService : ICartService
             cart.Items.Add(new CartItem
             {
                 Id        = Guid.NewGuid(),
-                TenantId  = tenantId,
                 CartId    = cart.Id,
                 ProductId = request.ProductId,
                 Color     = string.IsNullOrWhiteSpace(request.Color) ? null : request.Color,
@@ -90,9 +81,8 @@ public class CartService : ICartService
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            _logger.LogWarning(ex, "Concurrency exception occurred while adding product {ProductId} to cart for user {UserId}. Retrying.", request.ProductId, userId);
+            _logger.LogWarning(ex, "Concurrency exception for product {ProductId}, user {UserId}. Retrying.", request.ProductId, userId);
 
-            // Reload the cart and retry with the latest state.
             _context.ChangeTracker.Clear();
             cart = await GetOrCreateCartAsync(userId);
 
@@ -113,7 +103,6 @@ public class CartService : ICartService
                 cart.Items.Add(new CartItem
                 {
                     Id        = Guid.NewGuid(),
-                    TenantId  = tenantId,
                     CartId    = cart.Id,
                     ProductId = request.ProductId,
                     Color     = string.IsNullOrWhiteSpace(request.Color) ? null : request.Color,
@@ -134,17 +123,13 @@ public class CartService : ICartService
 
     public async Task<CartResponse?> UpdateItemAsync(Guid userId, Guid itemId, UpdateCartItemRequest request)
     {
-        var tenantId = _tenantContext.TenantId;
         var cart = await GetCartOrNullAsync(userId);
         if (cart is null) return null;
 
         var item = cart.Items.FirstOrDefault(i => i.Id == itemId);
         if (item is null) return null;
 
-        // Re-check stock
-        var inventory = await _context.Inventories
-            .FirstOrDefaultAsync(inv => inv.ProductId == item.ProductId && inv.TenantId == tenantId);
-
+        var inventory = await _context.Inventories.FirstOrDefaultAsync(inv => inv.ProductId == item.ProductId);
         var available = inventory?.AvailableQuantity ?? 0;
         if (available < request.Quantity)
             throw new InvalidOperationException($"Only {available} units available.");
@@ -179,14 +164,11 @@ public class CartService : ICartService
         await _context.SaveChangesAsync();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private async Task<Cart> GetOrCreateCartAsync(Guid userId)
     {
-        var tenantId = _tenantContext.TenantId;
         var cart = await _context.Carts
             .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.UserId == userId && c.TenantId == tenantId);
+            .FirstOrDefaultAsync(c => c.UserId == userId);
 
         if (cart is not null)
             return cart;
@@ -194,7 +176,6 @@ public class CartService : ICartService
         cart = new Cart
         {
             Id        = Guid.NewGuid(),
-            TenantId  = tenantId,
             UserId    = userId,
             CreatedAt = DateTime.UtcNow
         };
@@ -204,22 +185,18 @@ public class CartService : ICartService
     }
 
     private async Task<Cart?> GetCartOrNullAsync(Guid userId)
-    {
-        var tenantId = _tenantContext.TenantId;
-        return await _context.Carts
+        => await _context.Carts
             .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.UserId == userId && c.TenantId == tenantId);
-    }
+            .FirstOrDefaultAsync(c => c.UserId == userId);
 
     private async Task<CartResponse> BuildCartResponseAsync(Cart cart)
     {
-        var tenantId   = _tenantContext.TenantId;
         var productIds = cart.Items.Select(i => i.ProductId).Distinct().ToList();
 
         var products = await _context.Products
             .Include(p => p.Images.Where(img => img.IsPrimary))
             .Include(p => p.Inventory)
-            .Where(p => productIds.Contains(p.Id) && p.TenantId == tenantId)
+            .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id);
 
         var itemResponses = cart.Items.Select(item =>
