@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import { formatPrice } from '@/lib/utils';
 import CartItemRow from '@/components/CartItemRow';
 
@@ -23,6 +23,7 @@ export default async function CartPage() {
     );
   }
 
+  const api = await getServerApi();
   let cart = { id: '', items: [], subtotal: 0, itemCount: 0 };
   try {
     cart = await api.cart.getCart();

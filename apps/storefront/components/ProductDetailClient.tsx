@@ -26,7 +26,17 @@ export default function ProductDetailClient({ product }: Props) {
     return product.sizes?.length ? product.sizes : [];
   }, [product.sizes]);
   
-  const [selectedSize, setSelectedSize] = useState<string | undefined>(sizes[0] ?? undefined);
+  // PROFESYONEL DOKUNUŞ: İlk bedeni otomatik seçmiyoruz (Kullanıcı bilinçli seçmeli)
+  const [selectedSize, setSelectedSize] = useState<string | undefined>(undefined);
+  
+  // PROFESYONEL DOKUNUŞ: Sepete eklerken beden seçilmemişse gösterilecek hata durumu
+  const [sizeError, setSizeError] = useState<string | null>(null);
+
+  // PROFESYONEL DOKUNUŞ: Resim zoom (büyütme) ayarlarını tutacağımız state
+  const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({
+    transformOrigin: 'center center',
+    transform: 'scale(1)',
+  });
 
   const displayedImage = useMemo(() => {
     if (selectedColor) {
@@ -38,6 +48,7 @@ export default function ProductDetailClient({ product }: Props) {
     return images[selectedImageIndex] ?? images[0];
   }, [images, selectedColor, selectedImageIndex]);
 
+  // Resim değiştirme işlemi
   const handleNextImage = () => {
     if (images.length <= 1) return;
     const currentIndex = images.findIndex((img) => img.id === displayedImage?.id);
@@ -47,6 +58,7 @@ export default function ProductDetailClient({ product }: Props) {
     if (nextImage?.altText) setSelectedColor(nextImage.altText);
   };
 
+  // Renk seçme işlemi
   const handleSelectColor = (color: string) => {
     setSelectedColor(color);
     const match = images.find(
@@ -57,17 +69,58 @@ export default function ProductDetailClient({ product }: Props) {
     }
   };
 
+  // Beden seçme işlemi (Hata varsa temizlenir)
+  const handleSelectSize = (size: string) => {
+    setSelectedSize(size);
+    if (sizeError) setSizeError(null);
+  };
+
+  // Sepete eklemeden önce validasyon (doğrulama) işlemi
+  const handleAddToCartClick = (e: React.MouseEvent) => {
+    if (sizes.length > 0 && !selectedSize) {
+      e.preventDefault(); // Tıklamayı durdur ve API isteğini engelle
+      setSizeError("Lütfen sepete eklemeden önce bir beden seçiniz.");
+    }
+  };
+
+  // Fare resmin üzerinde hareket ettikçe çalışacak zoom hesaplaması
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+
+    setZoomStyle({
+      transformOrigin: `${x}% ${y}%`,
+      transform: 'scale(2.2)', // Büyütme katsayısı
+    });
+  };
+
+  // Fare resimden çıkınca zoom'u sıfırla
+  const handleMouseLeave = () => {
+    setZoomStyle({
+      transformOrigin: 'center center',
+      transform: 'scale(1)',
+    });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid gap-8 lg:grid-cols-3">
+        {/* ── 1. GÖRSELLER ALANI ── */}
         <div className="space-y-4 lg:col-span-1">
-          <div className="relative aspect-square overflow-hidden rounded-xl border bg-muted cursor-pointer max-w-sm" onClick={handleNextImage}>
+          <div 
+            className="relative aspect-[3/4] overflow-hidden rounded-xl border bg-muted cursor-crosshair max-w-sm" 
+            onClick={handleNextImage}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
             {displayedImage ? (
               <Image
                 src={displayedImage.url}
                 alt={displayedImage.altText ?? product.name}
                 fill
-                className="object-cover"
+                className="object-cover transition-transform duration-200 ease-out"
+                style={zoomStyle}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -76,8 +129,9 @@ export default function ProductDetailClient({ product }: Props) {
             )}
           </div>
 
+          {/* Küçük Resimler (Thumbnails) */}
           {images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {images.map((img, index) => (
                 <button
                   key={img.id}
@@ -86,7 +140,7 @@ export default function ProductDetailClient({ product }: Props) {
                     setSelectedImageIndex(index);
                     if (img.altText) setSelectedColor(img.altText);
                   }}
-                  className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border ${displayedImage?.id === img.id ? 'border-primary' : 'border-transparent'}`}
+                  className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border ${displayedImage?.id === img.id ? 'border-primary ring-1 ring-primary' : 'border-gray-200 opacity-70 hover:opacity-100'} transition-all`}
                 >
                   <Image src={img.url} alt={img.altText ?? ''} fill className="object-cover" />
                 </button>
@@ -95,46 +149,52 @@ export default function ProductDetailClient({ product }: Props) {
           )}
         </div>
 
+        {/* ── 2. ÜRÜN DETAYLARI VE SATIN ALMA ALANI ── */}
         <div className="space-y-6 lg:col-span-2">
+          {/* Kategori Linki */}
           {product.category && (
-            <a href={`/products?category=${product.category.id}`} className="text-sm text-muted-foreground hover:underline">
+            <a href={`/products?category=${product.category.id}`} className="text-sm font-semibold uppercase tracking-wider text-primary hover:underline">
               {product.category.name}
             </a>
           )}
 
-          <h1 className="text-3xl font-bold">{product.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
 
           {product.sku && (
-            <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
+            <p className="text-sm text-muted-foreground">Ürün Kodu: {product.sku}</p>
           )}
 
+          {/* Fiyat Alanı */}
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-bold">{formatPrice(product.price)}</span>
+            <span className="text-2xl font-bold text-gray-900">{formatPrice(product.price)}</span>
             {product.compareAtPrice && product.compareAtPrice > product.price && (
-              <span className="text-lg text-muted-foreground line-through">
+              <span className="text-lg text-gray-400 line-through">
                 {formatPrice(product.compareAtPrice)}
               </span>
             )}
           </div>
 
-          <Badge variant={(product.inventory?.availableQuantity ?? 0) > 0 ? 'success' : 'destructive'}>
-            {(product.inventory?.availableQuantity ?? 0) > 0 ? 'Stokta Var' : 'Stokta Yok'}
+          <Badge variant={(product.inventory?.availableQuantity ?? 0) > 0 ? 'success' : 'destructive'} className="text-xs">
+            {(product.inventory?.availableQuantity ?? 0) > 0 ? 'Stokta Var' : 'Tükendi'}
           </Badge>
 
           {product.description && (
-            <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+            <p className="text-gray-600 leading-relaxed text-sm">{product.description}</p>
           )}
 
+          <hr className="my-6 border-gray-100" />
+
+          {/* Renk Seçimi */}
           {availableColors.length > 0 && (
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Renk Seçimi</div>
+            <div className="space-y-3">
+              <div className="text-sm font-semibold text-gray-900">Renk Seçimi <span className="font-normal text-gray-500">({selectedColor})</span></div>
               <div className="flex flex-wrap gap-2">
                 {availableColors.map((color) => (
                   <button
                     key={color}
                     type="button"
                     onClick={() => handleSelectColor(color)}
-                    className={`rounded-full border px-4 py-2 text-sm transition ${selectedColor === color ? 'border-primary bg-primary/10' : 'border-input bg-transparent hover:bg-muted'}`}
+                    className={`rounded-md border px-4 py-2 text-sm font-medium transition-all ${selectedColor === color ? 'border-primary bg-primary text-white shadow-sm' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'}`}
                   >
                     {color}
                   </button>
@@ -143,16 +203,26 @@ export default function ProductDetailClient({ product }: Props) {
             </div>
           )}
 
+          {/* Beden Seçimi ve Hata Yönetimi */}
           {sizes.length > 0 && (
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Beden Seçimi</div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                 <div className="text-sm font-semibold text-gray-900">Beden Seçimi</div>
+                 {sizeError && <span className="text-xs font-bold text-red-500 animate-pulse">{sizeError}</span>}
+              </div>
               <div className="flex flex-wrap gap-2">
                 {sizes.map((size) => (
                   <button
                     key={size}
                     type="button"
-                    onClick={() => setSelectedSize(size)}
-                    className={`rounded-full border px-4 py-2 text-sm transition ${selectedSize === size ? 'border-primary bg-primary/10' : 'border-input bg-transparent hover:bg-muted'}`}
+                    onClick={() => handleSelectSize(size)}
+                    className={`min-w-[3rem] rounded-md border px-3 py-2 text-sm font-medium transition-all ${
+                      selectedSize === size 
+                        ? 'border-primary bg-primary text-white shadow-sm' 
+                        : sizeError 
+                          ? 'border-red-300 bg-red-50 text-red-700 hover:border-red-500 hover:bg-red-100' 
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-primary hover:text-primary'
+                    }`}
                   >
                     {size}
                   </button>
@@ -161,7 +231,15 @@ export default function ProductDetailClient({ product }: Props) {
             </div>
           )}
 
-          <AddToCartButton productId={product.id} color={selectedColor} size={selectedSize} />
+          {/* Sepete Ekle Butonu */}
+          <div className="pt-4" onClick={handleAddToCartClick}>
+            <AddToCartButton 
+              productId={product.id} 
+              color={selectedColor} 
+              size={selectedSize} 
+            />
+          </div>
+
         </div>
       </div>
     </div>

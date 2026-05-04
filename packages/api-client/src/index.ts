@@ -16,8 +16,8 @@ import { createOrderService } from './services/orders';
 import { createSettingsService } from './services/settings';
 import { createAddressService } from './services/addresses';
 
-export function createSaaSClient(baseUrl: string) {
-  const client = createApiClient(baseUrl);
+export function createSaaSClient(baseUrl: string, defaultHeaders?: Record<string, string>) {
+  const client = createApiClient(baseUrl, defaultHeaders);
   return {
     auth:      createAuthService(client),
     catalog:   createCatalogService(client),

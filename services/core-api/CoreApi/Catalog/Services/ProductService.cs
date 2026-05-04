@@ -42,7 +42,24 @@ public class ProductService : IProductService
             .AsQueryable();
 
         if (filter.CategoryId.HasValue)
-            query = query.Where(p => p.CategoryId == filter.CategoryId);
+        {
+            var allCats = await _context.Categories
+                .Select(c => new { c.Id, c.ParentId })
+                .ToListAsync();
+
+            var ids = new HashSet<Guid>();
+            var queue = new Queue<Guid>();
+            queue.Enqueue(filter.CategoryId.Value);
+            while (queue.Count > 0)
+            {
+                var cur = queue.Dequeue();
+                ids.Add(cur);
+                foreach (var child in allCats.Where(c => c.ParentId == cur))
+                    queue.Enqueue(child.Id);
+            }
+
+            query = query.Where(p => ids.Contains(p.CategoryId));
+        }
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {

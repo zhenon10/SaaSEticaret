@@ -14,7 +14,7 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   params?: Record<string, string | number | boolean | undefined | null>;
 }
 
-export function createApiClient(baseUrl: string) {
+export function createApiClient(baseUrl: string, defaultHeaders?: Record<string, string>) {
   async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
     const { body, params, headers, ...rest } = options;
 
@@ -32,6 +32,7 @@ export function createApiClient(baseUrl: string) {
       ...rest,
       credentials: 'include',
       headers: {
+        ...(defaultHeaders ?? {}),
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(headers as Record<string, string>),
       },

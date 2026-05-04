@@ -48,10 +48,14 @@ public class CartService : ICartService
 
         var cart = await GetOrCreateCartAsync(userId);
 
-        var existing = cart.Items.FirstOrDefault(i =>
+        var normalizedColor = string.IsNullOrWhiteSpace(request.Color) ? null : request.Color;
+        var normalizedSize  = string.IsNullOrWhiteSpace(request.Size)  ? null : request.Size;
+
+        var existing = await _context.CartItems.FirstOrDefaultAsync(i =>
+            i.CartId    == cart.Id &&
             i.ProductId == request.ProductId &&
-            string.Equals(i.Color, request.Color, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(i.Size, request.Size, StringComparison.OrdinalIgnoreCase));
+            i.Color     == normalizedColor &&
+            i.Size      == normalizedSize);
 
         if (existing is not null)
         {
@@ -62,59 +66,20 @@ public class CartService : ICartService
         }
         else
         {
-            cart.Items.Add(new CartItem
+            _context.CartItems.Add(new CartItem
             {
                 Id        = Guid.NewGuid(),
                 CartId    = cart.Id,
                 ProductId = request.ProductId,
-                Color     = string.IsNullOrWhiteSpace(request.Color) ? null : request.Color,
-                Size      = string.IsNullOrWhiteSpace(request.Size) ? null : request.Size,
+                Color     = normalizedColor,
+                Size      = normalizedSize,
                 Quantity  = request.Quantity,
                 UnitPrice = product.Price,
                 CreatedAt = DateTime.UtcNow
             });
         }
 
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            _logger.LogWarning(ex, "Concurrency exception for product {ProductId}, user {UserId}. Retrying.", request.ProductId, userId);
-
-            _context.ChangeTracker.Clear();
-            cart = await GetOrCreateCartAsync(userId);
-
-            existing = cart.Items.FirstOrDefault(i =>
-                i.ProductId == request.ProductId &&
-                string.Equals(i.Color, request.Color, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(i.Size, request.Size, StringComparison.OrdinalIgnoreCase));
-
-            if (existing is not null)
-            {
-                var newQty = existing.Quantity + request.Quantity;
-                if (available < newQty)
-                    throw new InvalidOperationException($"Only {available} units available.");
-                existing.Quantity = newQty;
-            }
-            else
-            {
-                cart.Items.Add(new CartItem
-                {
-                    Id        = Guid.NewGuid(),
-                    CartId    = cart.Id,
-                    ProductId = request.ProductId,
-                    Color     = string.IsNullOrWhiteSpace(request.Color) ? null : request.Color,
-                    Size      = string.IsNullOrWhiteSpace(request.Size) ? null : request.Size,
-                    Quantity  = request.Quantity,
-                    UnitPrice = product.Price,
-                    CreatedAt = DateTime.UtcNow
-                });
-            }
-
-            await _context.SaveChangesAsync();
-        }
+        await _context.SaveChangesAsync();
 
         _logger.LogInformation("Product {ProductId} added to cart for user {UserId}", request.ProductId, userId);
 
