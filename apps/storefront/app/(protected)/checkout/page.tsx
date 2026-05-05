@@ -7,11 +7,11 @@ import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ChevronRight, ShieldCheck, User, UserX, Truck } from 'lucide-react';
+import { ChevronRight, ShieldCheck, User, UserX, Truck, CheckCircle2, Plus } from 'lucide-react';
 import { useShipping } from '@/hooks/useShipping';
 import { api } from '@/lib/api';
 import { ApiError } from '@saas/api-client';
-import type { Cart } from '@saas/api-client';
+import type { Cart, UserAddress } from '@saas/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -312,29 +312,157 @@ function GuestCheckoutForm() {
 
 function UserCheckoutForm() {
   const router = useRouter();
-  const [error, setError] = useState('');
+  const [error, setError]                   = useState('');
+  const [submitting, setSubmitting]         = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<UserAddress[] | null>(null);
+  const [selectedId, setSelectedId]         = useState<string | 'new' | null>(null);
+  const [contactEmail, setContactEmail]     = useState('');
+  const [emailError, setEmailError]         = useState('');
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<UserForm>({
+  const { register, handleSubmit, formState: { errors } } = useForm<UserForm>({
     resolver: zodResolver(userSchema),
     defaultValues: { country: 'TR' },
   });
 
-  const onSubmit = async (data: UserForm) => {
+  useEffect(() => {
+    Promise.all([api.addresses.getAll(), api.auth.me()])
+      .then(([addresses, user]) => {
+        setSavedAddresses(addresses);
+        setContactEmail(user.email);
+        const def = addresses.find(a => a.isDefault) ?? addresses[0];
+        setSelectedId(addresses.length > 0 ? def!.id : 'new');
+      })
+      .catch(() => { setSavedAddresses([]); setSelectedId('new'); });
+  }, []);
+
+  const submitWithSaved = async () => {
     setError('');
+    if (!contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      setEmailError('Geçerli e-posta girin');
+      return;
+    }
+    const addr = savedAddresses?.find(a => a.id === selectedId);
+    if (!addr) return;
+    setSubmitting(true);
+    try {
+      const order = await api.orders.checkout({
+        shippingAddress: {
+          fullName: addr.fullName, email: contactEmail, phone: addr.phone,
+          line1: addr.line1, line2: addr.line2, city: addr.city,
+          state: addr.district, postalCode: addr.postalCode, country: addr.country,
+        },
+        currency: 'TRY',
+      });
+      router.push(`/payment/${order.id}`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Sipariş oluşturulurken hata oluştu.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitWithNew = handleSubmit(async (data) => {
+    setError('');
+    setSubmitting(true);
     try {
       const order = await api.orders.checkout({ shippingAddress: data, currency: 'TRY' });
       router.push(`/payment/${order.id}`);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Sipariş oluşturulurken hata oluştu.');
+    } finally {
+      setSubmitting(false);
     }
-  };
+  });
 
-  return (
-    <div className="grid gap-8 lg:grid-cols-5">
-      <form onSubmit={handleSubmit(onSubmit)} className="lg:col-span-3 space-y-6">
+  if (savedAddresses === null) {
+    return (
+      <div className="grid gap-8 lg:grid-cols-5">
+        <div className="lg:col-span-3 flex items-center justify-center py-12 text-muted-foreground text-sm">
+          Yükleniyor...
+        </div>
+        <div className="lg:col-span-2"><UserOrderSummary /></div>
+      </div>
+    );
+  }
 
-        <section className="rounded-2xl border bg-white p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Teslimat Adresi</h2>
+  const hasSaved    = savedAddresses.length > 0;
+  const isNewAddr   = selectedId === 'new';
+
+  const addressSection = (
+    <section className="rounded-2xl border bg-white p-6 space-y-4">
+      <h2 className="font-semibold text-gray-900">Teslimat Adresi</h2>
+
+      {hasSaved && (
+        <div className="space-y-3">
+          {savedAddresses.map(addr => (
+            <button
+              key={addr.id}
+              type="button"
+              onClick={() => setSelectedId(addr.id)}
+              className={`w-full text-left rounded-xl border-2 p-4 transition ${
+                selectedId === addr.id
+                  ? 'border-primary bg-primary/5'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold">{addr.fullName}</span>
+                    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">{addr.label}</span>
+                    {addr.isDefault && (
+                      <span className="text-xs text-primary font-medium">Varsayılan</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 truncate">
+                    {addr.line1}{addr.line2 ? `, ${addr.line2}` : ''}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {addr.district} / {addr.city}{addr.postalCode ? ` ${addr.postalCode}` : ''}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{addr.phone}</p>
+                </div>
+                {selectedId === addr.id && (
+                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                )}
+              </div>
+            </button>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => setSelectedId('new')}
+            className={`w-full text-left rounded-xl border-2 border-dashed p-4 transition ${
+              isNewAddr ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Plus className="h-4 w-4" />
+              Yeni adres gir
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Saved address selected: show only email */}
+      {!isNewAddr && (
+        <div className={`space-y-1.5 ${hasSaved ? 'pt-3 border-t' : ''}`}>
+          <Label htmlFor="contactEmail" className="text-sm font-medium text-gray-700">E-posta</Label>
+          <Input
+            id="contactEmail"
+            type="email"
+            value={contactEmail}
+            onChange={e => { setContactEmail(e.target.value); setEmailError(''); }}
+            className="h-11 rounded-lg border-gray-200 bg-gray-50 px-4 focus:bg-white focus:border-primary"
+            placeholder="ornek@email.com"
+          />
+          {emailError && <p className="text-xs text-destructive">{emailError}</p>}
+        </div>
+      )}
+
+      {/* New address: full form */}
+      {isNewAddr && (
+        <div className={`space-y-4 ${hasSaved ? 'pt-3 border-t' : ''}`}>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Ad Soyad" id="fullName" error={errors.fullName?.message} {...register('fullName')} />
             <Field label="E-posta"  id="email"    type="email" error={errors.email?.message} {...register('email')} />
@@ -350,18 +478,41 @@ function UserCheckoutForm() {
             <Field label="Posta Kodu" id="postalCode" error={errors.postalCode?.message} {...register('postalCode')} />
             <Field label="Ülke"       id="country"    error={errors.country?.message}    {...register('country')} />
           </div>
-        </section>
+        </div>
+      )}
+    </section>
+  );
 
-        {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
-
-        <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={isSubmitting}>
-          {isSubmitting ? 'Sipariş oluşturuluyor...' : 'Ödemeye Geç →'}
-        </Button>
-      </form>
-
-      <div className="lg:col-span-2">
-        <UserOrderSummary />
+  if (isNewAddr) {
+    return (
+      <div className="grid gap-8 lg:grid-cols-5">
+        <form onSubmit={submitWithNew} className="lg:col-span-3 space-y-6">
+          {addressSection}
+          {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={submitting}>
+            {submitting ? 'Sipariş oluşturuluyor...' : 'Ödemeye Geç →'}
+          </Button>
+        </form>
+        <div className="lg:col-span-2"><UserOrderSummary /></div>
       </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-5">
+      <div className="lg:col-span-3 space-y-6">
+        {addressSection}
+        {error && <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
+        <Button
+          type="button"
+          onClick={submitWithSaved}
+          className="w-full h-12 text-base rounded-xl"
+          disabled={submitting || !selectedId}
+        >
+          {submitting ? 'Sipariş oluşturuluyor...' : 'Ödemeye Geç →'}
+        </Button>
+      </div>
+      <div className="lg:col-span-2"><UserOrderSummary /></div>
     </div>
   );
 }
