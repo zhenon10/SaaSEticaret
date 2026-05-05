@@ -90,9 +90,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     var origin = context.Request.Headers.Origin.ToString();
                     var referer = context.Request.Headers.Referer.ToString();
 
-                    var isAdmin = host.StartsWith("admin.", StringComparison.OrdinalIgnoreCase)
+                    var isAdmin = context.Request.Headers.ContainsKey("X-Admin-Client")
+                        || host.StartsWith("admin.", StringComparison.OrdinalIgnoreCase)
                         || origin.Contains(":3001")
-                        || referer.Contains(":3001");
+                        || origin.StartsWith("https://admin.", StringComparison.OrdinalIgnoreCase)
+                        || referer.Contains(":3001")
+                        || referer.StartsWith("https://admin.", StringComparison.OrdinalIgnoreCase);
 
                     var cookieName = isAdmin ? "ad_at" : "st_at";
 
