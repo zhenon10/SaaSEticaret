@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getServerApi } from '@/lib/server-api';
 import { formatPrice, formatDate } from '@/lib/utils';
-import type { OrderStatus } from '@saas/api-client';
+import type { OrderStatus, OrderListItem, PagedResult } from '@saas/api-client';
 
 export const metadata: Metadata = { title: 'Siparişler' };
 
@@ -25,7 +25,7 @@ export default async function OrdersPage({ searchParams }: Props) {
   const page = Number(params.page ?? 1);
   const api = await getServerApi();
 
-  let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
+  let result: PagedResult<OrderListItem> = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20, hasNext: false, hasPrev: false };
   try {
     result = await api.orders.getOrders({ status: params.status, page, pageSize: 20 });
   } catch { /* ignore */ }

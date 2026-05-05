@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { PagedResult, ProductListItem } from '@saas/api-client';
 import Link from 'next/link';
 import { getServerApi } from '@/lib/server-api';
 import { formatPrice } from '@/lib/utils';
@@ -16,7 +17,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const page = Number(params.page ?? 1);
 
   const api = await getServerApi();
-  let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
+  let result: PagedResult<ProductListItem> = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20, hasNext: false, hasPrev: false };
   let categories: { id: string; name: string }[] = [];
 
   try {
