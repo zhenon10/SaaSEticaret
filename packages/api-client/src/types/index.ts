@@ -98,6 +98,7 @@ export interface CreateCategoryRequest {
   description?: string;
   parentId?: string;
   displayOrder?: number;
+  isActive?: boolean;
 }
 
 export interface UpdateCategoryRequest extends CreateCategoryRequest {}
