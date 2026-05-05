@@ -143,7 +143,7 @@ public class ProductListItem
     public string?  PrimaryImageUrl { get; set; }
     public string   CategoryName   { get; set; } = string.Empty;
     public bool     IsInStock      { get; set; }
-    public int      AvailableQty   { get; set; }
+    public int      AvailableQuantity { get; set; }
     public DateTime CreatedAt      { get; set; }
 }
 

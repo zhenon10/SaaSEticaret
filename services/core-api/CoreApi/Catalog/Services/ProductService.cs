@@ -114,7 +114,7 @@ public class ProductService : IProductService
                     .FirstOrDefault()
                     ?? p.Images.OrderBy(i => i.DisplayOrder).Select(i => i.Url).FirstOrDefault(),
                 IsInStock       = p.Inventory != null && p.Inventory.Quantity > p.Inventory.ReservedQuantity,
-                AvailableQty    = p.Inventory != null ? p.Inventory.Quantity - p.Inventory.ReservedQuantity : 0,
+                AvailableQuantity = p.Inventory != null ? p.Inventory.Quantity - p.Inventory.ReservedQuantity : 0,
                 CreatedAt       = p.CreatedAt
             })
             .ToListAsync();
