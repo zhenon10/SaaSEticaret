@@ -10,6 +10,8 @@ export async function getServerApi() {
   // (backend ad_at cookie'sini tanımak için Origin/Referer'dan admin tespiti yapar)
   return createSaaSClient(
     baseUrl,
-    token ? { Cookie: `ad_at=${token}`, Referer: 'http://localhost:3001/' } : undefined,
+    token
+      ? { Cookie: `ad_at=${token}`, 'X-Admin-Client': '1' }
+      : { 'X-Admin-Client': '1' },
   );
 }

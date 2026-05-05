@@ -176,6 +176,9 @@ public class AuthController : ControllerBase
 
     private bool IsAdminHost()
     {
+        if (HttpContext.Request.Headers.ContainsKey("X-Admin-Client"))
+            return true;
+
         if (HttpContext.Request.Host.Value?.StartsWith("admin.", StringComparison.OrdinalIgnoreCase) ?? false)
             return true;
 
