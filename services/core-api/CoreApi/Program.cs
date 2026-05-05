@@ -131,6 +131,8 @@ var allowedOrigins = new[]
     "http://localhost:3001",
     "https://kumandacibaba.com",
     "https://www.kumandacibaba.com",
+    "https://saa-s-eticaret-admin.vercel.app",
+    "https://saa-s-eticaret-storefront.vercel.app",
 };
 
 var vercelOriginPattern = new System.Text.RegularExpressions.Regex(
