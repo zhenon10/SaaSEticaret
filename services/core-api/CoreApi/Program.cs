@@ -125,10 +125,22 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // ==================== CORS ====================
+var allowedOrigins = new[]
+{
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://kumandacibaba.com",
+    "https://www.kumandacibaba.com",
+};
+
+var vercelOriginPattern = new System.Text.RegularExpressions.Regex(
+    @"^https://[a-z0-9-]+-zhenon10s-projects\.vercel\.app$");
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
-        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+        policy.SetIsOriginAllowed(origin =>
+            allowedOrigins.Contains(origin) || vercelOriginPattern.IsMatch(origin))
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials());
