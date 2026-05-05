@@ -3,6 +3,7 @@ import { getServerApi } from '@/lib/server-api';
 import { formatPrice } from '@/lib/utils';
 import { Package, ShoppingBag, Tags, Warehouse } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Dashboard' };
 
 async function getStats() {
