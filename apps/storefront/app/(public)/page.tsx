@@ -33,7 +33,6 @@ export default async function HomePage() {
 
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : newProducts;
 
-  // Hero values
   const heroImage   = s(settings, 'hero.image', '');
   const heroBadge   = s(settings, 'hero.badge',    'Yeni Sezon Koleksiyonu');
   const heroTitle   = s(settings, 'hero.title',    'Trendleri Yakala');
@@ -52,7 +51,6 @@ export default async function HomePage() {
     }
   } catch { /* keep defaults */ }
 
-  // Campaign cards
   const campaigns = [
     {
       icon: '🚚',
@@ -76,7 +74,8 @@ export default async function HomePage() {
 
   return (
     <div className="bg-gray-50">
-      {/* ── Hero Banner ────────────────────────────────── */}
+
+      {/* ── Hero Banner ────────────────────────────────────────── */}
       <section
         className="relative overflow-hidden"
         style={heroImage
@@ -90,23 +89,23 @@ export default async function HomePage() {
             style={{ background: 'linear-gradient(to right, hsl(var(--primary) / 0.9), hsl(var(--primary-end, var(--primary)) / 0.75))' }}
           />
         )}
-        <div className="relative container mx-auto px-4 py-16 text-center">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-orange-100">
+        <div className="relative container mx-auto px-4 py-12 text-center sm:py-20">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-orange-100 sm:text-sm">
             {heroBadge}
           </p>
-          <h1 className="mb-4 text-4xl font-extrabold text-white md:text-5xl">
+          <h1 className="mb-3 text-3xl font-extrabold leading-tight text-white sm:text-4xl md:text-5xl">
             {heroTitle}
           </h1>
-          <p className="mb-8 text-lg text-orange-100 opacity-90">
+          <p className="mb-7 text-sm text-orange-100 opacity-90 sm:text-base sm:mb-8">
             {heroSub}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             {heroButtons.map((btn, i) =>
               btn.variant === 'outline' ? (
                 <Link
                   key={i}
                   href={btn.href}
-                  className="rounded-full border-2 border-white px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
+                  className="w-full rounded-full border-2 border-white px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/10 sm:w-auto sm:px-8 sm:py-3"
                 >
                   {btn.text}
                 </Link>
@@ -114,7 +113,7 @@ export default async function HomePage() {
                 <Link
                   key={i}
                   href={btn.href}
-                  className="rounded-full bg-white px-8 py-3 text-sm font-bold text-primary shadow transition-transform hover:scale-105"
+                  className="w-full rounded-full bg-white px-6 py-2.5 text-sm font-bold text-primary shadow transition-transform hover:scale-105 sm:w-auto sm:px-8 sm:py-3"
                 >
                   {btn.text}
                 </Link>
@@ -126,22 +125,22 @@ export default async function HomePage() {
         {!heroImage && <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-white/5" />}
       </section>
 
-      {/* ── Category Quick Links ────────────────────────── */}
+      {/* ── Kategori Hızlı Linkler ─────────────────────────────── */}
       {categories.length > 0 && (
-        <section className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
+        <section className="container mx-auto px-4 py-6 sm:py-8">
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8 sm:gap-3">
             {categories.slice(0, 8).map((cat) => {
               const { Icon, bg, fg } = getCategoryVisual(cat.name, cat.slug);
               return (
                 <Link
                   key={cat.id}
                   href={`/products?category=${cat.slug}`}
-                  className="group flex flex-col items-center gap-2 rounded-lg border border-gray-100 bg-white p-3 text-center shadow-sm transition-all hover:border-primary hover:shadow-md"
+                  className="group flex flex-col items-center gap-1.5 rounded-lg border border-gray-100 bg-white p-2 text-center shadow-sm transition-all hover:border-primary hover:shadow-md sm:gap-2 sm:p-3"
                 >
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${bg} ${fg} transition-colors group-hover:bg-primary group-hover:text-white`}>
-                    <Icon className="h-5 w-5" />
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${bg} ${fg} transition-colors group-hover:bg-primary group-hover:text-white`}>
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
-                  <span className="text-xs font-medium text-gray-700 group-hover:text-primary">
+                  <span className="line-clamp-1 text-[10px] font-medium text-gray-700 group-hover:text-primary sm:text-xs">
                     {cat.name}
                   </span>
                 </Link>
@@ -151,39 +150,39 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── Campaign Cards ──────────────────────────────── */}
-      <section className="container mx-auto px-4 pb-4">
-        <div className="grid gap-3 sm:grid-cols-3">
+      {/* ── Kampanya Kartları ───────────────────────────────────── */}
+      <section className="container mx-auto px-4 pb-6">
+        <div className="grid gap-2 sm:grid-cols-3 sm:gap-3">
           {campaigns.map(({ icon, bg, text, title, subtitle }) => (
             <div key={title} className={`flex items-center gap-3 rounded-lg ${bg} px-4 py-3`}>
-              <span className="text-2xl">{icon}</span>
-              <div>
+              <span className="text-2xl leading-none">{icon}</span>
+              <div className="min-w-0">
                 <p className={`text-sm font-bold ${text}`}>{title}</p>
-                <p className="text-xs text-gray-500">{subtitle}</p>
+                <p className="truncate text-xs text-gray-500">{subtitle}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Featured / New Products ─────────────────────── */}
+      {/* ── Öne Çıkan / Yeni Ürünler ───────────────────────────── */}
       {displayProducts.length > 0 && (
         <section className="container mx-auto px-4 py-6">
-          <div className="mb-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-7 w-1 rounded-full bg-primary" />
-              <h2 className="text-xl font-bold text-gray-800">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="h-6 w-1 shrink-0 rounded-full bg-primary sm:h-7" />
+              <h2 className="text-base font-bold text-gray-800 sm:text-xl">
                 {featuredProducts.length > 0 ? 'Öne Çıkan Ürünler' : 'Yeni Ürünler'}
               </h2>
             </div>
             <Link
               href="/products"
-              className="flex items-center gap-1 rounded-full border border-primary px-4 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+              className="shrink-0 rounded-full border border-primary px-3 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white sm:px-4 sm:py-1.5 sm:text-sm"
             >
               Tümünü Gör →
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
             {displayProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -191,19 +190,20 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── CTA Strip ──────────────────────────────────── */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 px-8 py-10 text-center text-white">
-          <h3 className="mb-2 text-2xl font-bold">Kampanyaları Kaçırma!</h3>
-          <p className="mb-6 text-gray-300">Tüm ürünlere göz at, en uygun fiyatları yakala.</p>
+      {/* ── CTA Strip ──────────────────────────────────────────── */}
+      <section className="container mx-auto px-4 py-6 sm:py-8">
+        <div className="rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 px-6 py-8 text-center text-white sm:px-8 sm:py-10">
+          <h3 className="mb-2 text-xl font-bold sm:text-2xl">Kampanyaları Kaçırma!</h3>
+          <p className="mb-6 text-sm text-gray-300 sm:text-base">Tüm ürünlere göz at, en uygun fiyatları yakala.</p>
           <Link
             href="/products"
-            className="inline-block rounded-full bg-primary px-8 py-3 text-sm font-bold text-white transition-transform hover:scale-105"
+            className="inline-block rounded-full bg-primary px-6 py-2.5 text-sm font-bold text-white transition-transform hover:scale-105 sm:px-8 sm:py-3"
           >
             Ürünleri Keşfet
           </Link>
         </div>
       </section>
+
     </div>
   );
 }

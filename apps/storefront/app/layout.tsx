@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { api } from '@/lib/api';
 import CartProvider from '@/components/CartProvider';
+import FavoritesProvider from '@/components/FavoritesProvider';
 import './globals.css';
 
 function hexToHsl(hex: string): string | null {
@@ -73,7 +74,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="tr">
       <body className="min-h-screen bg-background font-sans antialiased">
         {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
-        <CartProvider>{children}</CartProvider>
+        <FavoritesProvider>
+          <CartProvider>{children}</CartProvider>
+        </FavoritesProvider>
       </body>
     </html>
   );

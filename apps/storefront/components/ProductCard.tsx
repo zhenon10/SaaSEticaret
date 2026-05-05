@@ -4,6 +4,7 @@ import type { ProductListItem } from '@saas/api-client';
 import { formatPrice } from '@/lib/utils';
 import { Camera, Star } from 'lucide-react';
 import ProductCardSizeSelector from './ProductCardSizeSelector';
+import FavoriteButton from './FavoriteButton';
 import { api } from '@/lib/api';
 
 interface Props { product: ProductListItem }
@@ -26,10 +27,12 @@ function Stars({ count = 0, rating = 5 }: { count?: number; rating?: number }) {
 
 export default async function ProductCard({ product }: Props) {
   let sizes: string[] = [];
+  let imageCount = 1;
 
   try {
     const fullProduct = await api.catalog.getProductBySlug(product.slug);
     sizes = fullProduct.sizes ?? [];
+    imageCount = fullProduct.images?.length ?? 1;
   } catch (err) {
     console.error('Failed to fetch product sizes:', err);
   }
@@ -71,16 +74,33 @@ export default async function ProductCard({ product }: Props) {
           </div>
         )}
 
-        {/* İndirim Rozeti */}
-        {hasDiscount && (
-          <div className="absolute left-2 top-2 z-10 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm pointer-events-none">
-            %{discountPercentage} İndirim
-          </div>
-        )}
+        {/* Sol üst: indirim rozeti + fotoğraf sayısı */}
+        <div className="absolute left-2 top-2 z-10 flex flex-col gap-1 pointer-events-none">
+          {hasDiscount && (
+            <div className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+              %{discountPercentage} İndirim
+            </div>
+          )}
+          {imageCount > 1 && (
+            <div className="flex items-center gap-0.5 rounded bg-black/55 px-1.5 py-0.5 w-fit">
+              <Camera className="h-2.5 w-2.5 text-white" />
+              <span className="text-[10px] font-medium text-white">{imageCount}</span>
+            </div>
+          )}
+        </div>
 
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5 rounded bg-black/55 px-1.5 py-0.5 pointer-events-none">
-          <Camera className="h-2.5 w-2.5 text-white" />
-          <span className="text-[10px] font-medium text-white">1</span>
+        {/* Sağ üst: favori butonu */}
+        <div className="absolute right-2 top-2 z-10">
+          <FavoriteButton
+            item={{
+              productId: product.id,
+              productName: product.name,
+              productSlug: product.slug,
+              productImage: product.primaryImageUrl ?? undefined,
+              price: product.price,
+              compareAtPrice: product.compareAtPrice,
+            }}
+          />
         </div>
 
         {/* ── İŞTE SİHİRLİ KISIM: AŞAĞIDAN KAYAN BEDEN SEÇİCİ ── */}

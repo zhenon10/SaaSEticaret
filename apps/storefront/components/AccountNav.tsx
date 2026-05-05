@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, MapPin, CreditCard, HelpCircle, ShoppingBag, Star, Tag, Eye } from 'lucide-react';
+import { User, MapPin, CreditCard, HelpCircle, ShoppingBag, Star, Tag, Eye, Heart } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const navSections: { title: string; items: { href: string; label: string; Icon: LucideIcon }[] }[] = [
@@ -25,6 +25,7 @@ const navSections: { title: string; items: { href: string; label: string; Icon: 
   {
     title: 'Sana Özel',
     items: [
+      { href: '/favorites', label: 'Favorilerim', Icon: Heart },
       { href: '/account/coupons', label: 'İndirim Kuponlarım', Icon: Tag },
       { href: '/account/recently-viewed', label: 'Önceden Gezdiğim', Icon: Eye },
     ],

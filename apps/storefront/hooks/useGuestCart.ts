@@ -5,6 +5,16 @@ import type { GuestCartItem } from '@saas/api-client';
 
 const STORAGE_KEY = 'guest_cart';
 
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try { return crypto.randomUUID(); } catch {}
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 function load(): GuestCartItem[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -36,7 +46,7 @@ export function useGuestCart() {
           i === existing ? { ...i, quantity: i.quantity + item.quantity } : i,
         );
       } else {
-        next = [...prev, { ...item, localId: crypto.randomUUID() }];
+        next = [...prev, { ...item, localId: generateId() }];
       }
       save(next);
       return next;

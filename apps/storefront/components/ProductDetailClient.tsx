@@ -6,12 +6,34 @@ import { Badge } from '@/components/ui/badge';
 import AddToCartButton from '@/components/AddToCartButton';
 import { formatPrice } from '@/lib/utils';
 import type { Product } from '@saas/api-client';
+import { ChevronDown, Heart, Share2 } from 'lucide-react';
+import { useFavorites } from '@/components/FavoritesProvider';
+
+function AccordionItem({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-t border-gray-200">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between py-4 text-left text-sm font-semibold uppercase tracking-wider text-gray-900"
+      >
+        {title}
+        <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="pb-5 text-sm text-gray-600 leading-relaxed">{children}</div>}
+    </div>
+  );
+}
 
 interface Props {
   product: Product;
 }
 
 export default function ProductDetailClient({ product }: Props) {
+  const { isFavorite, toggle } = useFavorites();
+  const favorited = isFavorite(product.id);
+
   const images = product.images ?? [];
   const initialImageIndex = images.findIndex((img) => img.isPrimary) ?? 0;
   const [selectedImageIndex, setSelectedImageIndex] = useState(Math.max(initialImageIndex, 0));
@@ -160,10 +182,6 @@ export default function ProductDetailClient({ product }: Props) {
 
           <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
 
-          {product.sku && (
-            <p className="text-sm text-muted-foreground">Ürün Kodu: {product.sku}</p>
-          )}
-
           {/* Fiyat Alanı */}
           <div className="flex items-center gap-3">
             <span className="text-2xl font-bold text-gray-900">{formatPrice(product.price)}</span>
@@ -177,10 +195,6 @@ export default function ProductDetailClient({ product }: Props) {
           <Badge variant={(product.inventory?.availableQuantity ?? 0) > 0 ? 'success' : 'destructive'} className="text-xs">
             {(product.inventory?.availableQuantity ?? 0) > 0 ? 'Stokta Var' : 'Tükendi'}
           </Badge>
-
-          {product.description && (
-            <p className="text-gray-600 leading-relaxed text-sm">{product.description}</p>
-          )}
 
           <hr className="my-6 border-gray-100" />
 
@@ -243,6 +257,69 @@ export default function ProductDetailClient({ product }: Props) {
               color={selectedColor}
               size={selectedSize}
             />
+          </div>
+
+          {/* Favoriler ve Paylaş */}
+          <div className="flex items-center gap-8 pt-2 pb-4">
+            <button
+              type="button"
+              onClick={() => toggle({
+                productId: product.id,
+                productName: product.name,
+                productSlug: product.slug,
+                productImage: product.images?.find((i) => i.isPrimary)?.url ?? product.images?.[0]?.url,
+                price: product.price,
+                compareAtPrice: product.compareAtPrice,
+              })}
+              className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-colors ${favorited ? 'text-red-500 hover:text-red-600' : 'text-gray-700 hover:text-gray-900'}`}
+            >
+              <Heart className={`h-4 w-4 ${favorited ? 'fill-current' : ''}`} />
+              {favorited ? 'Favorilerde' : 'Favorilere Ekle'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigator.share?.({ title: product.name, url: window.location.href })}
+              className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              <Share2 className="h-4 w-4" />
+              Ürünü Paylaş
+            </button>
+          </div>
+
+          {/* Bilgi Accordion Bölümleri */}
+          <div className="border-b border-gray-200">
+            <AccordionItem title="Ürün Bilgileri" defaultOpen>
+              {product.description ? (
+                <p>{product.description}</p>
+              ) : (
+                <p className="text-gray-400 italic">Ürün bilgisi girilmemiş.</p>
+              )}
+              {product.sku && (
+                <p className="mt-2 text-gray-500 text-xs">Ürün Kodu: {product.sku}</p>
+              )}
+            </AccordionItem>
+
+            <AccordionItem title="İçerik">
+              <p>Ürün içeriği ve malzeme bilgileri için satıcı etiketini inceleyiniz.</p>
+            </AccordionItem>
+
+            <AccordionItem title="Bakım Talimatları">
+              <ul className="space-y-1 list-disc list-inside">
+                <li>30°C'de hassas yıkama</li>
+                <li>Kurutma makinesi kullanmayınız</li>
+                <li>Düşük ısıda ütüleyiniz</li>
+                <li>Kuru temizleme uygulanabilir</li>
+              </ul>
+            </AccordionItem>
+
+            <AccordionItem title="Teslimat & İade">
+              <ul className="space-y-1 list-disc list-inside">
+                <li>Siparişler 1–3 iş günü içinde kargoya verilir</li>
+                <li>Ücretsiz kargo 500 ₺ ve üzeri siparişlerde geçerlidir</li>
+                <li>Ürün teslim tarihinden itibaren 14 gün içinde iade hakkınız bulunmaktadır</li>
+                <li>İade koşulları için müşteri hizmetlerimizle iletişime geçiniz</li>
+              </ul>
+            </AccordionItem>
           </div>
 
         </div>
