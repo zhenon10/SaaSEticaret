@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,7 +13,6 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [error, setError] = useState('');
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
@@ -34,8 +32,7 @@ export default function AdminLoginPage() {
         setError(res.status === 401 ? 'E-posta veya şifre hatalı.' : (body?.message ?? 'Giriş başarısız.'));
         return;
       }
-      router.push('/products');
-      router.refresh();
+      window.location.href = '/products';
     } catch {
       setError('Beklenmedik bir hata oluştu.');
     }

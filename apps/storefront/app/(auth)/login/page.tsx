@@ -39,8 +39,7 @@ export default function LoginPage() {
         setError(res.status === 401 ? 'E-posta veya şifre hatalı.' : (body?.message ?? 'Giriş başarısız.'));
         return;
       }
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     } catch {
       setError('Beklenmedik bir hata oluştu.');
     }

@@ -64,8 +64,7 @@ export default function RegisterPage() {
         setError(res.status === 409 ? 'Bu e-posta adresi zaten kullanılıyor.' : (body?.message ?? 'Kayıt başarısız oldu.'));
         return;
       }
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     } catch {
       setError('Beklenmedik bir hata oluştu.');
     }
