@@ -46,7 +46,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { error = result.Error });
         }
 
-        if (IsMobileClient())
+        if (IsMobileClient() || IsProxyRequest())
         {
             return Ok(new LoginResponse
             {
@@ -72,7 +72,7 @@ public class AuthController : ControllerBase
         if (!result.Success)
             return Unauthorized(new { error = result.Error });
 
-        if (IsMobileClient())
+        if (IsMobileClient() || IsProxyRequest())
         {
             return Ok(new LoginResponse
             {
@@ -191,6 +191,9 @@ public class AuthController : ControllerBase
     private bool IsMobileClient() =>
         HttpContext.Request.Headers.TryGetValue("X-Client-Type", out var val) &&
         string.Equals(val.ToString(), "mobile", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsProxyRequest() =>
+        HttpContext.Request.Headers.ContainsKey("X-Proxy-Request");
 
     private void SetAuthCookies(string accessToken, string refreshToken)
     {
