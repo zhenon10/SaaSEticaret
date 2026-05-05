@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { api } from '@/lib/api';
-import { ApiError } from '@saas/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,15 +29,20 @@ export default function LoginPage() {
   const onSubmit = async (data: FormValues) => {
     setError('');
     try {
-      await api.auth.login(data);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(res.status === 401 ? 'E-posta veya şifre hatalı.' : (body?.message ?? 'Giriş başarısız.'));
+        return;
+      }
       router.push('/');
       router.refresh();
-    } catch (e) {
-      if (e instanceof ApiError) {
-        setError(e.status === 401 ? 'E-posta veya şifre hatalı.' : e.message);
-      } else {
-        setError('Beklenmedik bir hata oluştu.');
-      }
+    } catch {
+      setError('Beklenmedik bir hata oluştu.');
     }
   };
 

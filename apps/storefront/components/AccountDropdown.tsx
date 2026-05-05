@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, ChevronDown, ShoppingBag, MapPin, LogOut } from 'lucide-react';
-import { api } from '@/lib/api';
 
 interface Props {
   name: string;
@@ -28,7 +27,7 @@ export default function AccountDropdown({ name, phone }: Props) {
   }, []);
 
   const handleLogout = async () => {
-    try { await api.auth.logout(); } catch { /* ignore */ }
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     router.push('/login');
     router.refresh();
   };

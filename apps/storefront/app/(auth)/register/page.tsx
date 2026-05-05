@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { api } from '@/lib/api';
-import { ApiError } from '@saas/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,28 +45,29 @@ export default function RegisterPage() {
   const onSubmit = async (data: FormValues) => {
     setError('');
     try {
-      await api.auth.register({
-        email: data.email,
-        password: data.password,
-        confirmPassword: data.confirmPassword,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone,
-        kvkkConsent: data.kvkkConsent,
-        marketingConsent: data.marketingConsent,
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          confirmPassword: data.confirmPassword,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone,
+          kvkkConsent: data.kvkkConsent,
+          marketingConsent: data.marketingConsent,
+        }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(res.status === 409 ? 'Bu e-posta adresi zaten kullanılıyor.' : (body?.message ?? 'Kayıt başarısız oldu.'));
+        return;
+      }
       router.push('/');
       router.refresh();
-    } catch (e) {
-      if (e instanceof ApiError) {
-        if (e.status === 409) {
-          setError('Bu e-posta adresi zaten kullanılıyor.');
-        } else {
-          setError(e.message || 'Kayıt başarısız oldu.');
-        }
-      } else {
-        setError('Beklenmedik bir hata oluştu.');
-      }
+    } catch {
+      setError('Beklenmedik bir hata oluştu.');
     }
   };
 
