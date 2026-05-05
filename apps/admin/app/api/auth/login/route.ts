@@ -5,9 +5,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5052';
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
+  const origin = request.headers.get('origin') ?? 'http://localhost:3001';
+
   const apiRes = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Origin: origin },
     body: JSON.stringify(body),
   });
 

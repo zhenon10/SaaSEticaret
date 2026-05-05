@@ -181,10 +181,11 @@ public class AuthController : ControllerBase
 
         var origin = HttpContext.Request.Headers.Origin.ToString();
         if (!string.IsNullOrEmpty(origin))
-            return origin.Contains(":3001");
+            return origin.Contains(":3001") || origin.StartsWith("https://admin.", StringComparison.OrdinalIgnoreCase);
 
         var referer = HttpContext.Request.Headers.Referer.ToString();
-        return !string.IsNullOrEmpty(referer) && referer.Contains(":3001");
+        return !string.IsNullOrEmpty(referer) &&
+               (referer.Contains(":3001") || referer.StartsWith("https://admin.", StringComparison.OrdinalIgnoreCase));
     }
 
     private bool IsMobileClient() =>
