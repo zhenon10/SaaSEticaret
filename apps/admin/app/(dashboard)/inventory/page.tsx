@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { PagedResult, ProductListItem } from '@saas/api-client';
 import { getServerApi } from '@/lib/server-api';
 import InventoryUpdateForm from '@/components/InventoryUpdateForm';
 
@@ -13,7 +14,7 @@ export default async function InventoryPage({ searchParams }: Props) {
   const page = Number(params.page ?? 1);
 
   const api = await getServerApi();
-  let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
+  let result: PagedResult<ProductListItem> = { items: [], totalCount: 0, totalPages: 0, page: 1, pageSize: 20, hasNext: false, hasPrev: false };
   try {
     result = await api.catalog.getProducts({ search: params.search, page, pageSize: 20 });
   } catch { /* ignore */ }
