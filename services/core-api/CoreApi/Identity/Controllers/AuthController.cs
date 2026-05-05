@@ -197,12 +197,13 @@ public class AuthController : ControllerBase
         var accessCookieName  = isAdmin ? "ad_at" : "st_at";
         var refreshCookieName = isAdmin ? "ad_rt" : "st_rt";
         var secure            = !_env.IsDevelopment();
+        var sameSite          = secure ? SameSiteMode.None : SameSiteMode.Lax;
 
         Response.Cookies.Append(accessCookieName, accessToken, new CookieOptions
         {
             HttpOnly = true,
             Secure   = secure,
-            SameSite = SameSiteMode.Lax,
+            SameSite = sameSite,
             Expires  = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes)
         });
 
@@ -210,7 +211,7 @@ public class AuthController : ControllerBase
         {
             HttpOnly = true,
             Secure   = secure,
-            SameSite = SameSiteMode.Lax,
+            SameSite = sameSite,
             Expires  = DateTimeOffset.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
         });
     }
@@ -220,12 +221,13 @@ public class AuthController : ControllerBase
         var isAdmin           = IsAdminHost();
         var accessCookieName  = isAdmin ? "ad_at" : "st_at";
         var refreshCookieName = isAdmin ? "ad_rt" : "st_rt";
+        var secure            = !_env.IsDevelopment();
 
         var expired = new CookieOptions
         {
             HttpOnly = true,
-            Secure   = !_env.IsDevelopment(),
-            SameSite = SameSiteMode.Lax,
+            Secure   = secure,
+            SameSite = secure ? SameSiteMode.None : SameSiteMode.Lax,
             Expires  = DateTimeOffset.UtcNow.AddDays(-1)
         };
 
