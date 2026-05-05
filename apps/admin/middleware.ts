@@ -5,7 +5,7 @@ const AUTH_COOKIE = 'ad_at';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/login')) return NextResponse.next();
+  if (pathname.startsWith('/login') || pathname.startsWith('/api/')) return NextResponse.next();
 
   const token = request.cookies.get(AUTH_COOKIE)?.value;
   if (!token) {
