@@ -6,7 +6,6 @@ import {
   Package, Tags, ShoppingBag, Warehouse, Settings, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 const nav = [
@@ -22,7 +21,7 @@ export default function Sidebar() {
   const router = useRouter();
 
   const handleLogout = async () => {
-    try { await api.auth.logout(); } catch { /* ignore */ }
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     router.push('/login');
     router.refresh();
   };
