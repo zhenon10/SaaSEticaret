@@ -61,6 +61,41 @@ public class CheckoutRequest
     public string Currency { get; set; } = "TRY";
 }
 
+// ── Guest Checkout ────────────────────────────────────────────────────────────
+
+public class GuestCheckoutItem
+{
+    [Required]
+    public Guid   ProductId { get; set; }
+
+    [Range(1, 100)]
+    public int    Quantity  { get; set; } = 1;
+
+    [MaxLength(100)]
+    public string? Color    { get; set; }
+
+    [MaxLength(100)]
+    public string? Size     { get; set; }
+}
+
+public class GuestCheckoutRequest
+{
+    [Required]
+    public AddressDto ShippingAddress { get; set; } = null!;
+
+    public AddressDto? BillingAddress { get; set; }
+
+    [Required]
+    [MinLength(1)]
+    public List<GuestCheckoutItem> Items { get; set; } = new();
+
+    [MaxLength(10)]
+    public string Currency { get; set; } = "TRY";
+
+    [MaxLength(1000)]
+    public string? Notes { get; set; }
+}
+
 // ── Status update ─────────────────────────────────────────────────────────────
 
 public class UpdateOrderStatusRequest
@@ -130,7 +165,8 @@ public class OrderListItem
 public class OrderResponse
 {
     public Guid        Id             { get; set; }
-    public Guid        UserId         { get; set; }
+    public Guid?       UserId         { get; set; }
+    public string?     GuestEmail     { get; set; }
     public string      OrderNumber    { get; set; } = string.Empty;
     public OrderStatus Status         { get; set; }
     public string      StatusLabel    { get; set; } = string.Empty;

@@ -30,12 +30,12 @@ interface Props { orderId: string; currentStatus: OrderStatus }
 
 export default function OrderStatusForm({ orderId, currentStatus }: Props) {
   const router = useRouter();
-  const [status, setStatus] = useState<OrderStatus>(transitions[currentStatus][0] ?? currentStatus);
+  const available = transitions[currentStatus] ?? [];
+  const [status, setStatus] = useState<OrderStatus>(available[0] ?? currentStatus);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const available = transitions[currentStatus];
   if (available.length === 0) return null;
 
   const needsReason = status === 'Cancelled' || status === 'Refunded';

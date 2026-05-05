@@ -7,6 +7,8 @@ export { createCartService } from './services/cart';
 export { createOrderService } from './services/orders';
 export { createSettingsService } from './services/settings';
 export { createAddressService } from './services/addresses';
+export { createPaymentService } from './services/payments';
+export type { InitiatePaymentResponse } from './services/payments';
 
 import { createApiClient } from './client';
 import { createAuthService } from './services/auth';
@@ -15,6 +17,7 @@ import { createCartService } from './services/cart';
 import { createOrderService } from './services/orders';
 import { createSettingsService } from './services/settings';
 import { createAddressService } from './services/addresses';
+import { createPaymentService } from './services/payments';
 
 export function createSaaSClient(baseUrl: string, defaultHeaders?: Record<string, string>) {
   const client = createApiClient(baseUrl, defaultHeaders);
@@ -25,6 +28,7 @@ export function createSaaSClient(baseUrl: string, defaultHeaders?: Record<string
     orders:    createOrderService(client),
     settings:  createSettingsService(client),
     addresses: createAddressService(client),
+    payments:  createPaymentService(client),
     uploadImage: async (file: File): Promise<string> => {
       const form = new FormData();
       form.append('file', file);

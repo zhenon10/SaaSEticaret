@@ -3,6 +3,7 @@ import type {
   Order,
   OrderListItem,
   CheckoutRequest,
+  GuestCheckoutRequest,
   UpdateOrderStatusRequest,
   OrderQueryFilter,
   PagedResult,
@@ -12,6 +13,9 @@ export function createOrderService(client: ApiClient) {
   return {
     checkout: (data: CheckoutRequest) =>
       client.post<Order>('/orders/checkout', data),
+
+    guestCheckout: (data: GuestCheckoutRequest) =>
+      client.post<Order>('/orders/guest-checkout', data),
 
     getOrders: (filter?: OrderQueryFilter) =>
       client.get<PagedResult<OrderListItem>>('/orders', {

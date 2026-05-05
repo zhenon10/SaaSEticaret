@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
-import type { Category } from '@saas/api-client';
+import type { Category, ProductListItem, PagedResult } from '@saas/api-client';
 
 export const metadata: Metadata = { title: 'Ürünler' };
 export const revalidate = 60;
@@ -78,7 +78,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const params = await searchParams;
   const page = Number(params.page ?? 1);
 
-  let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
+  let result: PagedResult<ProductListItem> = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false, pageSize: 20 };
   let categoryTree: Category[] = [];
 
   try {

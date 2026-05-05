@@ -2,6 +2,7 @@ using CoreApi.Catalog.Entities;
 using CoreApi.Domain.Entities;
 using CoreApi.Identity.Entities;
 using CoreApi.Orders.Entities;
+using CoreApi.Payments.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoreApi.Infrastructure.Persistence;
@@ -34,6 +35,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<CartItem>  CartItems  => Set<CartItem>();
     public DbSet<Order>     Orders     => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
+    // ── Payments ─────────────────────────────────────────────────────────────
+    public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -362,6 +366,28 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.TotalPrice).HasColumnName("total_price").HasColumnType("numeric(18,2)");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
+            entity.HasIndex(e => e.OrderId);
+        });
+
+        // ==================== PAYMENT MODULE ====================
+
+        modelBuilder.Entity<PaymentTransaction>(entity =>
+        {
+            entity.ToTable("payment_transactions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.OrderId).HasColumnName("order_id");
+            entity.Property(e => e.Token).HasColumnName("token").HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.IyzicoPaymentId).HasColumnName("iyzico_payment_id").HasMaxLength(100);
+            entity.Property(e => e.ErrorCode).HasColumnName("error_code").HasMaxLength(100);
+            entity.Property(e => e.ErrorMessage).HasColumnName("error_message").HasMaxLength(500);
+            entity.Property(e => e.Amount).HasColumnName("amount").HasColumnType("numeric(18,2)");
+            entity.Property(e => e.Currency).HasColumnName("currency").HasMaxLength(10);
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+
+            entity.HasIndex(e => e.Token);
             entity.HasIndex(e => e.OrderId);
         });
     }

@@ -407,6 +407,40 @@ export default function SettingsForm({ initialSettings }: Props) {
         </Field>
       </Section>
 
+      {/* ── Kargo Ayarları ──────────────────────────────── */}
+      <Section
+        title="🚚 Kargo Ayarları"
+        description="Kargo ücreti ve ücretsiz kargo eşiği. Sepet tutarı eşiğe ulaşınca kargo ücretsiz olur."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Kargo Ücreti (₺)" hint="Eşiğin altındaki siparişlere eklenir.">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className={inputClass}
+              value={get('shipping.fee', '49.90')}
+              onChange={(e) => set('shipping.fee', e.target.value)}
+              placeholder="49.90"
+            />
+          </Field>
+          <Field label="Ücretsiz Kargo Limiti (₺)" hint="Bu tutara ulaşan sepetlerde kargo ücretsiz. 0 girilirse hiç ücretsiz olmaz.">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className={inputClass}
+              value={get('shipping.free_threshold', '500.00')}
+              onChange={(e) => set('shipping.free_threshold', e.target.value)}
+              placeholder="500.00"
+            />
+          </Field>
+        </div>
+        <div className="rounded-md bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          Mevcut ayar: <strong>{get('shipping.free_threshold', '500') === '0' ? 'Hiçbir zaman ücretsiz' : `${get('shipping.free_threshold', '500')} ₺ ve üzeri ücretsiz`}</strong>, altında <strong>{get('shipping.fee', '49.90')} ₺</strong> kargo ücreti uygulanır.
+        </div>
+      </Section>
+
       {/* ── Nav Links ───────────────────────────────────── */}
       <Section
         title="🔗 Navigasyon Linkleri"

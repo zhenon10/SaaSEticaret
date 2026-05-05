@@ -233,10 +233,15 @@ export default function ProductDetailClient({ product }: Props) {
 
           {/* Sepete Ekle Butonu */}
           <div className="pt-4" onClick={handleAddToCartClick}>
-            <AddToCartButton 
-              productId={product.id} 
-              color={selectedColor} 
-              size={selectedSize} 
+            <AddToCartButton
+              productId={product.id}
+              productName={product.name}
+              productSlug={product.slug}
+              unitPrice={product.price}
+              productImage={product.images?.find((i) => i.isPrimary)?.url ?? product.images?.[0]?.url}
+              sku={product.sku ?? undefined}
+              color={selectedColor}
+              size={selectedSize}
             />
           </div>
 

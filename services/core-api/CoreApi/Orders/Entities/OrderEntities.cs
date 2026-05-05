@@ -55,7 +55,8 @@ public class CartItem : BaseEntity
 
 public class Order : BaseEntityWithAudit
 {
-    public Guid        UserId         { get; set; }
+    public Guid?       UserId         { get; set; }   // null = guest order
+    public string?     GuestEmail     { get; set; }   // contact email for guests
     public string      OrderNumber    { get; set; } = string.Empty;
     public OrderStatus Status         { get; set; } = OrderStatus.Pending;
     public string      Currency       { get; set; } = "TRY";

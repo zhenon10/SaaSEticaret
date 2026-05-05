@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { api } from '@/lib/api';
+import Link from 'next/link';
+import { getServerApi } from '@/lib/server-api';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import type { OrderStatus } from '@saas/api-client';
@@ -16,6 +17,7 @@ const statusVariant: Record<OrderStatus, 'default' | 'secondary' | 'success' | '
 
 export default async function OrderDetailPage({ params }: Props) {
   const { id } = await params;
+  const api = await getServerApi();
 
   let order;
   try {
@@ -86,6 +88,18 @@ export default async function OrderDetailPage({ params }: Props) {
       {order.cancelReason && (
         <div className="mt-4 rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
           <strong>İptal nedeni:</strong> {order.cancelReason}
+        </div>
+      )}
+
+      {order.status === 'Pending' && (
+        <div className="mt-6 text-center">
+          <Link
+            href={`/payment/${order.id}`}
+            className="inline-block rounded-lg bg-primary px-8 py-3 font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Ödeme Yap →
+          </Link>
+          <p className="mt-2 text-xs text-muted-foreground">Sipariş ödeme bekleniyor</p>
         </div>
       )}
     </div>

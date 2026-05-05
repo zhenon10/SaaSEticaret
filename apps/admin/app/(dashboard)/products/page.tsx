@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import { formatPrice } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import DeleteProductButton from '@/components/DeleteProductButton';
@@ -15,6 +15,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const params = await searchParams;
   const page = Number(params.page ?? 1);
 
+  const api = await getServerApi();
   let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
   let categories: { id: string; name: string }[] = [];
 

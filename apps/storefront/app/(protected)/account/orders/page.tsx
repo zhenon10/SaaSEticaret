@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import type { OrderStatus } from '@saas/api-client';
+import type { OrderStatus, OrderListItem, PagedResult } from '@saas/api-client';
 
 export const metadata: Metadata = { title: 'Siparişlerim' };
 
@@ -18,7 +18,8 @@ const statusVariant: Record<OrderStatus, 'default' | 'secondary' | 'success' | '
 };
 
 export default async function OrdersPage() {
-  let orders = { items: [], totalCount: 0 };
+  const api = await getServerApi();
+  let orders: PagedResult<OrderListItem> = { items: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 0, hasNext: false, hasPrev: false };
   try {
     orders = await api.orders.getOrders({ pageSize: 20 });
   } catch {

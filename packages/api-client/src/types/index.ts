@@ -278,7 +278,8 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  userId: string;
+  userId?: string;
+  guestEmail?: string;
   orderNumber: string;
   status: OrderStatus;
   statusLabel: string;
@@ -328,4 +329,34 @@ export interface OrderQueryFilter {
   to?: string;
   page?: number;
   pageSize?: number;
+}
+
+export interface GuestCheckoutItem {
+  productId: string;
+  quantity: number;
+  color?: string;
+  size?: string;
+}
+
+export interface GuestCheckoutRequest {
+  shippingAddress: Address;
+  billingAddress?: Address;
+  items: GuestCheckoutItem[];
+  currency?: string;
+  notes?: string;
+}
+
+// ── Guest Cart (localStorage) ─────────────────────────────────────────────────
+
+export interface GuestCartItem {
+  localId: string;
+  productId: string;
+  productName: string;
+  productSlug: string;
+  productImage?: string;
+  sku?: string;
+  color?: string;
+  size?: string;
+  quantity: number;
+  unitPrice: number;
 }

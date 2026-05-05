@@ -5,6 +5,8 @@ using CoreApi.Orders.Services;
 using CoreApi.Identity.Services;
 using CoreApi.Infrastructure.Data;
 using CoreApi.Infrastructure.Persistence;
+using CoreApi.Payments.Services;
+using CoreApi.Payments.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -14,7 +16,10 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+        opts.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 // ==================== IDENTITY ====================
 
@@ -43,6 +48,11 @@ builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+
+// ==================== PAYMENTS ====================
+
+builder.Services.Configure<IyzicoSettings>(builder.Configuration.GetSection("Iyzico"));
+builder.Services.AddScoped<IPaymentService, IyzicoService>();
 
 // Use ASP.NET Core Identity's PBKDF2 hasher — never plain SHA-256
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();

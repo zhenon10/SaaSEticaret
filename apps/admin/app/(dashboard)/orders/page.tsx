@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import { formatPrice, formatDate } from '@/lib/utils';
 import type { OrderStatus } from '@saas/api-client';
 
@@ -23,6 +23,7 @@ interface Props {
 export default async function OrdersPage({ searchParams }: Props) {
   const params = await searchParams;
   const page = Number(params.page ?? 1);
+  const api = await getServerApi();
 
   let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
   try {

@@ -9,7 +9,8 @@ namespace CoreApi.Orders.Services;
 public interface IOrderService
 {
     Task<OrderResponse>                CheckoutAsync(Guid userId, CheckoutRequest request);
-    Task<OrderResponse?>               GetByIdAsync(Guid orderId, Guid userId, bool isStaff);
+    Task<OrderResponse>                GuestCheckoutAsync(GuestCheckoutRequest request);
+    Task<OrderResponse?>               GetByIdAsync(Guid orderId, Guid? userId, bool isStaff);
     Task<OrderResponse?>               GetByNumberAsync(string orderNumber, Guid userId, bool isStaff);
     Task<PagedResult<OrderListItem>>   GetPagedAsync(Guid userId, bool isStaff, OrderQueryFilter filter);
     Task<OrderResponse?>               UpdateStatusAsync(Guid orderId, UpdateOrderStatusRequest request);
@@ -30,6 +31,26 @@ public class OrderService : IOrderService
         _context     = context;
         _cartService = cartService;
         _logger      = logger;
+    }
+
+    private async Task<decimal> CalculateShippingAsync(decimal subtotal)
+    {
+        var settings = await _context.SiteSettings
+            .Where(s => s.Key == "shipping.fee" || s.Key == "shipping.free_threshold")
+            .ToDictionaryAsync(s => s.Key, s => s.Value);
+
+        if (!settings.TryGetValue("shipping.fee", out var feeStr) ||
+            !decimal.TryParse(feeStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var fee))
+            return 0;
+
+        if (settings.TryGetValue("shipping.free_threshold", out var thresholdStr) &&
+            decimal.TryParse(thresholdStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var threshold) &&
+            subtotal >= threshold)
+            return 0;
+
+        return fee;
     }
 
     public async Task<OrderResponse> CheckoutAsync(Guid userId, CheckoutRequest request)
@@ -76,7 +97,8 @@ public class OrderService : IOrderService
             ? MapAddress(request.BillingAddress)
             : MapAddress(request.ShippingAddress);
 
-        var subtotal = cart.Items.Sum(i => i.UnitPrice * i.Quantity);
+        var subtotal     = cart.Items.Sum(i => i.UnitPrice * i.Quantity);
+        var shippingFee  = await CalculateShippingAsync(subtotal);
 
         var order = new Order
         {
@@ -88,8 +110,8 @@ public class OrderService : IOrderService
             Subtotal        = subtotal,
             DiscountAmount  = 0,
             TaxAmount       = 0,
-            ShippingAmount  = 0,
-            TotalAmount     = subtotal,
+            ShippingAmount  = shippingFee,
+            TotalAmount     = subtotal + shippingFee,
             Notes           = request.Notes,
             ShippingAddress = shipping,
             BillingAddress  = billing,
@@ -126,11 +148,95 @@ public class OrderService : IOrderService
         return MapToResponse(order);
     }
 
-    public async Task<OrderResponse?> GetByIdAsync(Guid orderId, Guid userId, bool isStaff)
+    public async Task<OrderResponse> GuestCheckoutAsync(GuestCheckoutRequest request)
+    {
+        var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
+        var products = await _context.Products
+            .Include(p => p.Inventory)
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id);
+
+        var validationErrors = new List<string>();
+        foreach (var item in request.Items)
+        {
+            if (!products.TryGetValue(item.ProductId, out var product))
+            { validationErrors.Add($"Ürün bulunamadı: {item.ProductId}."); continue; }
+            if (!product.IsActive)
+            { validationErrors.Add($"'{product.Name}' artık satışta değil."); continue; }
+            var available = product.Inventory?.AvailableQuantity ?? 0;
+            if (available < item.Quantity)
+                validationErrors.Add($"'{product.Name}' için yeterli stok yok (talep: {item.Quantity}, mevcut: {available}).");
+        }
+        if (validationErrors.Count > 0)
+            throw new InvalidOperationException(string.Join(" | ", validationErrors));
+
+        var orderSeq    = await _context.Orders.CountAsync() + 1;
+        var orderNumber = $"ORD-{DateTime.UtcNow:yyyyMM}-{orderSeq:D6}";
+
+        var shipping = MapAddress(request.ShippingAddress);
+        var billing  = request.BillingAddress is not null
+            ? MapAddress(request.BillingAddress)
+            : MapAddress(request.ShippingAddress);
+
+        var order = new Order
+        {
+            Id              = Guid.NewGuid(),
+            UserId          = null,
+            GuestEmail      = request.ShippingAddress.Email,
+            OrderNumber     = orderNumber,
+            Status          = OrderStatus.Pending,
+            Currency        = request.Currency,
+            DiscountAmount  = 0,
+            TaxAmount       = 0,
+            ShippingAmount  = 0, // set after subtotal is calculated below
+            Notes           = request.Notes,
+            ShippingAddress = shipping,
+            BillingAddress  = billing,
+            CreatedAt       = DateTime.UtcNow
+        };
+
+        decimal subtotal = 0;
+        foreach (var item in request.Items)
+        {
+            var product   = products[item.ProductId];
+            var unitPrice = product.Price;
+            subtotal += unitPrice * item.Quantity;
+
+            order.Items.Add(new OrderItem
+            {
+                Id          = Guid.NewGuid(),
+                OrderId     = order.Id,
+                ProductId   = item.ProductId,
+                ProductName = product.Name,
+                ProductSku  = product.Sku,
+                Quantity    = item.Quantity,
+                UnitPrice   = unitPrice,
+                TotalPrice  = unitPrice * item.Quantity,
+                CreatedAt   = DateTime.UtcNow
+            });
+
+            product.Inventory!.ReservedQuantity += item.Quantity;
+        }
+
+        var guestShipping  = await CalculateShippingAsync(subtotal);
+        order.Subtotal     = subtotal;
+        order.ShippingAmount = guestShipping;
+        order.TotalAmount  = subtotal + guestShipping;
+
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Guest order {OrderNumber} created for {Email}", orderNumber, order.GuestEmail);
+        return MapToResponse(order);
+    }
+
+    public async Task<OrderResponse?> GetByIdAsync(Guid orderId, Guid? userId, bool isStaff)
     {
         var order = await FetchOrderAsync(o => o.Id == orderId);
         if (order is null) return null;
-        if (!isStaff && order.UserId != userId) return null;
+        // Guest orders: userId == null means request comes from payment callback or guest payment page
+        if (!isStaff && userId.HasValue && order.UserId != userId) return null;
+        if (!isStaff && !userId.HasValue && order.UserId.HasValue) return null; // guest can't see user orders
         return MapToResponse(order);
     }
 
@@ -309,6 +415,7 @@ public class OrderService : IOrderService
     {
         Id              = o.Id,
         UserId          = o.UserId,
+        GuestEmail      = o.GuestEmail,
         OrderNumber     = o.OrderNumber,
         Status          = o.Status,
         StatusLabel     = o.Status.ToString(),

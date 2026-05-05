@@ -15,7 +15,7 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
 }
 
 export function createApiClient(baseUrl: string, defaultHeaders?: Record<string, string>) {
-  async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  async function request<T>(path: string, options: RequestOptions = {}, _retry = true): Promise<T> {
     const { body, params, headers, ...rest } = options;
 
     let url = `${baseUrl}${path}`;
@@ -38,6 +38,17 @@ export function createApiClient(baseUrl: string, defaultHeaders?: Record<string,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
+
+    if (res.status === 401 && _retry && path !== '/auth/refresh') {
+      const refreshed = await fetch(`${baseUrl}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...(defaultHeaders ?? {}) },
+      });
+      if (refreshed.ok) {
+        return request<T>(path, options, false);
+      }
+    }
 
     if (!res.ok) {
       let errorMessage = `HTTP ${res.status}`;

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import { formatPrice } from '@/lib/utils';
 import { Package, ShoppingBag, Tags, Warehouse } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
 async function getStats() {
+  const api = await getServerApi();
   try {
     const [products, orders, categories] = await Promise.all([
       api.catalog.getProducts({ pageSize: 1 }),
@@ -23,6 +24,7 @@ async function getStats() {
 }
 
 async function getRecentOrders() {
+  const api = await getServerApi();
   try {
     const result = await api.orders.getOrders({ pageSize: 5 });
     return result.items;

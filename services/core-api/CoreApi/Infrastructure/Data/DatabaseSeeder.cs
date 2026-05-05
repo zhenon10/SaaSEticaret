@@ -35,6 +35,8 @@ public static class DatabaseSeeder
         ["footer.copyright"]           = "Tüm hakları saklıdır.",
         ["footer.columns"]             = """[{"title":"Alışveriş","links":[{"label":"Tüm Ürünler","href":"/products"},{"label":"Öne Çıkanlar","href":"/products?featured=1"},{"label":"Yeni Gelenler","href":"/products"},{"label":"İndirimli Ürünler","href":"/products"}]},{"title":"Hesabım","links":[{"label":"Giriş Yap","href":"/login"},{"label":"Siparişlerim","href":"/account/orders"},{"label":"Sepetim","href":"/cart"}]}]""",
         ["footer.legal"]               = """[{"label":"Gizlilik Politikası","href":"/privacy"},{"label":"Kullanım Koşulları","href":"/terms"},{"label":"KVKK","href":"/kvkk"}]""",
+        ["shipping.fee"]               = "49.90",
+        ["shipping.free_threshold"]    = "500.00",
     };
 
     public static async Task SeedAsync(ApplicationDbContext context)

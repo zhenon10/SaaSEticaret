@@ -19,6 +19,24 @@ public class OrderController : ControllerBase
         _logger       = logger;
     }
 
+    [AllowAnonymous]
+    [HttpPost("guest-checkout")]
+    [ProducesResponseType(typeof(OrderResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GuestCheckout([FromBody] GuestCheckoutRequest request)
+    {
+        if (!ModelState.IsValid) return BadRequest(new { error = "Invalid request", details = ModelState });
+        try
+        {
+            var order = await _orderService.GuestCheckoutAsync(request);
+            return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+    }
+
     [HttpPost("checkout")]
     [ProducesResponseType(typeof(OrderResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -52,15 +70,14 @@ public class OrderController : ControllerBase
         return Ok(result);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(OrderResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var userId = GetUserId();
-        if (userId is null) return Unauthorized();
-
-        var order = await _orderService.GetByIdAsync(id, userId.Value, IsStaffOrAbove());
+        var order  = await _orderService.GetByIdAsync(id, userId, IsStaffOrAbove());
         return order is null ? NotFound() : Ok(order);
     }
 

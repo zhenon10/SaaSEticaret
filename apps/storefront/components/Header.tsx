@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { Heart, ShoppingBag, User, Menu } from 'lucide-react';
+import { Heart, User, Menu } from 'lucide-react';
 import SearchBar from './SearchBar';
 import AccountDropdown from './AccountDropdown';
+import CartBadge from './CartBadge';
 import { api } from '@/lib/api';
 
 const DEFAULT_NAV_LINKS = [
@@ -78,13 +79,7 @@ export default async function Header() {
               <Heart className="h-5 w-5" />
               <span className="text-[11px]">Favorilerim</span>
             </Link>
-            <Link
-              href="/cart"
-              className="flex flex-col items-center gap-0.5 text-gray-600 transition-colors hover:text-primary"
-            >
-              <ShoppingBag className="h-5 w-5" />
-              <span className="text-[11px]">Sepetim</span>
-            </Link>
+            <CartBadge />
           </nav>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_PREFIXES = ['/cart', '/checkout', '/account'];
+const PROTECTED_PREFIXES = ['/account'];
 const AUTH_COOKIE = 'st_at';
 
 export function middleware(request: NextRequest) {
@@ -20,5 +20,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/cart/:path*', '/checkout/:path*', '/account/:path*'],
+  matcher: ['/account/:path*'],
 };

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import InventoryUpdateForm from '@/components/InventoryUpdateForm';
 
 export const metadata: Metadata = { title: 'Stok Yönetimi' };
@@ -12,6 +12,7 @@ export default async function InventoryPage({ searchParams }: Props) {
   const params = await searchParams;
   const page = Number(params.page ?? 1);
 
+  const api = await getServerApi();
   let result = { items: [], totalCount: 0, totalPages: 0, page: 1, hasNext: false, hasPrev: false };
   try {
     result = await api.catalog.getProducts({ search: params.search, page, pageSize: 20 });

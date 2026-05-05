@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import { Plus, Pencil } from 'lucide-react';
 import DeleteCategoryButton from '@/components/DeleteCategoryButton';
 import type { Category } from '@saas/api-client';
@@ -44,6 +44,7 @@ function CategoryRow({ category, level = 0 }: { category: Category; level?: numb
 }
 
 export default async function CategoriesPage() {
+  const api = await getServerApi();
   let tree: Category[] = [];
   try {
     tree = await api.catalog.getCategoryTree();

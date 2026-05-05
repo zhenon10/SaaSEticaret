@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import SettingsForm from './SettingsForm';
 
 export const metadata: Metadata = { title: 'Site Ayarları' };
 
 export default async function SettingsPage() {
+  const api = await getServerApi();
   let settings: Record<string, string> = {};
   try {
     settings = await api.settings.getAll();

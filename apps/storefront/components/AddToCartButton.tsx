@@ -5,10 +5,23 @@ import { ShoppingCart } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ApiError } from '@saas/api-client';
 import { Button } from '@/components/ui/button';
+import { useCart } from '@/components/CartProvider';
 
-interface Props { productId: string; color?: string; size?: string }
+interface Props {
+  productId: string;
+  productName: string;
+  productSlug: string;
+  unitPrice: number;
+  productImage?: string;
+  sku?: string;
+  color?: string;
+  size?: string;
+}
 
-export default function AddToCartButton({ productId, color, size }: Props) {
+export default function AddToCartButton({
+  productId, productName, productSlug, unitPrice, productImage, sku, color, size,
+}: Props) {
+  const { isGuest, addGuestItem, refreshUserCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -16,13 +29,15 @@ export default function AddToCartButton({ productId, color, size }: Props) {
     setLoading(true);
     setMessage('');
     try {
-      await api.cart.addItem({ productId, quantity: 1, color, size });
-      setMessage('Sepete eklendi!');
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        window.location.href = '/login';
-        return;
+      if (isGuest) {
+        addGuestItem({ productId, productName, productSlug, unitPrice, productImage, sku, color, size, quantity: 1 });
+        setMessage('Sepete eklendi!');
+      } else {
+        await api.cart.addItem({ productId, quantity: 1, color, size });
+        refreshUserCart();
+        setMessage('Sepete eklendi!');
       }
+    } catch (e) {
       setMessage(e instanceof ApiError ? e.message : 'Hata oluştu.');
     } finally {
       setLoading(false);

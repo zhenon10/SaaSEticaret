@@ -91,7 +91,14 @@ export default async function ProductCard({ product }: Props) {
               tıklama işlemleri (onClick) burada sorunsuz çalışır 
               ve Link ile çakışmaz.
             */}
-            <ProductCardSizeSelector productId={product.id} sizes={sizes} />
+            <ProductCardSizeSelector
+              productId={product.id}
+              productName={product.name}
+              productSlug={product.slug}
+              unitPrice={product.price}
+              productImage={product.primaryImageUrl ?? undefined}
+              sizes={sizes}
+            />
           </div>
         )}
       </div>

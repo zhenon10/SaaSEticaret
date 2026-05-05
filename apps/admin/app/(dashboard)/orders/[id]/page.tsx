@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { api } from '@/lib/api';
+import { getServerApi } from '@/lib/server-api';
 import { formatPrice, formatDate } from '@/lib/utils';
 import OrderStatusForm from '@/components/OrderStatusForm';
 import type { OrderStatus } from '@saas/api-client';
@@ -21,6 +21,7 @@ const statusColor: Record<OrderStatus, string> = {
 
 export default async function OrderDetailPage({ params }: Props) {
   const { id } = await params;
+  const api = await getServerApi();
 
   let order;
   try {
