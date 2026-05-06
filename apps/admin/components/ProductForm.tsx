@@ -127,7 +127,7 @@ export default function ProductForm({ categories, product }: Props) {
 
   const onSubmit = async (data: FormValues) => {
     setError('');
-    const payload = { ...data, slug: data.slug || toSlug(data.name), colors, sizes };
+    const payload = { ...data, slug: data.slug || toSlug(data.name), colors, sizes, categoryId: data.categoryId || undefined };
     try {
       if (isEditing) {
         await api.catalog.updateProduct(product.id, payload);
