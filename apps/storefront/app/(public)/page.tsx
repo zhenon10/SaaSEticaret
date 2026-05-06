@@ -4,7 +4,7 @@ import ProductCard from '@/components/ProductCard';
 import { getCategoryVisual } from '@/components/CategoryIcon';
 import type { Category } from '@saas/api-client';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 function s(settings: Record<string, string>, key: string, fallback = '') {
   return settings[key] ?? fallback;
