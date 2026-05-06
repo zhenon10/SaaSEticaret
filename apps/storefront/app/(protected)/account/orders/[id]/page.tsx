@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { getServerApi } from '@/lib/server-api';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import type { OrderStatus } from '@saas/api-client';
+import type { OrderStatus, PaymentMethod } from '@saas/api-client';
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -91,7 +91,32 @@ export default async function OrderDetailPage({ params }: Props) {
         </div>
       )}
 
-      {order.status === 'Pending' && (
+      {/* Payment method */}
+      {order.paymentMethod && (
+        <div className="mt-4 rounded-xl border p-5">
+          <h2 className="mb-2 text-lg font-semibold">Ödeme Yöntemi</h2>
+          {order.paymentMethod === 'BankTransfer' ? (
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">Havale / EFT</span>
+              {order.status === 'Pending' && (
+                <Link href={`/payment/${order.id}`} className="text-sm text-primary hover:underline">
+                  Banka bilgilerini tekrar gör →
+                </Link>
+              )}
+            </div>
+          ) : (
+            <span className="rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800">Kredi / Banka Kartı</span>
+          )}
+        </div>
+      )}
+
+      {order.status === 'Pending' && order.paymentMethod === 'BankTransfer' && (
+        <div className="mt-4 rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
+          Havale/EFT ödemesi bekleniyor. Ödeme tarafımıza ulaştıktan sonra siparişiniz onaylanacaktır.
+        </div>
+      )}
+
+      {order.status === 'Pending' && !order.paymentMethod && (
         <div className="mt-6 text-center">
           <Link
             href={`/payment/${order.id}`}
