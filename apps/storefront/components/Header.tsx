@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { User, Menu } from 'lucide-react';
+import { User } from 'lucide-react';
 import SearchBar from './SearchBar';
 import AccountDropdown from './AccountDropdown';
 import CartBadge from './CartBadge';
 import FavoriteBadge from './FavoriteBadge';
+import CategoryFlyout from './CategoryFlyout';
 import { api } from '@/lib/api';
 
 const DEFAULT_NAV_LINKS = [
@@ -21,15 +22,20 @@ export default async function Header() {
   let storeName = 'mağaza';
   let userName = '';
   let userPhone: string | undefined;
+  let categories: { id: string; name: string; slug: string; parentId: string | null; isActive: boolean }[] = [];
 
   try {
-    const settings = await api.settings.getAll();
+    const [settings, cats] = await Promise.all([
+      api.settings.getAll(),
+      api.catalog.getCategories(),
+    ]);
     if (settings['store.name']) storeName = settings['store.name'];
     const raw = settings['nav.links'];
     if (raw) {
       const parsed = JSON.parse(raw) as { label: string; href: string }[];
       if (Array.isArray(parsed) && parsed.length > 0) navLinks = parsed;
     }
+    categories = cats.filter((c) => c.isActive);
   } catch {
     // fall back to defaults
   }
@@ -82,11 +88,8 @@ export default async function Header() {
       {/* ── Category nav row ─────────────────────────────── */}
       <div className="border-b border-gray-100 bg-white">
         <div className="container mx-auto flex h-11 items-stretch px-4">
-          {/* All categories button */}
-          <button className="flex shrink-0 items-center gap-2 bg-primary px-4 text-sm font-semibold text-white">
-            <Menu className="h-4 w-4" />
-            <span className="hidden sm:inline">TÜM KATEGORİLER</span>
-          </button>
+          {/* All categories flyout */}
+          <CategoryFlyout categories={categories} />
 
           {/* Nav links */}
           <nav className="flex items-stretch overflow-x-auto scrollbar-hide">
