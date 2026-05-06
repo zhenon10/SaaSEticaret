@@ -1,0 +1,9 @@
+bin/
+obj/
+publish/
+*.user
+.vs/
+appsettings.Development.json
+appsettings.Production.json
+out.log
+err.log
