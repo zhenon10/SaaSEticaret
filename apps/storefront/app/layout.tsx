@@ -4,6 +4,8 @@ import CartProvider from '@/components/CartProvider';
 import FavoritesProvider from '@/components/FavoritesProvider';
 import './globals.css';
 
+export const dynamic = 'force-dynamic';
+
 function hexToHsl(hex: string): string | null {
   const m = hex.match(/^#?([0-9a-f]{6})$/i);
   if (!m) return null;
