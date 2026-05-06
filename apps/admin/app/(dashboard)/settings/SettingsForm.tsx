@@ -441,6 +441,55 @@ export default function SettingsForm({ initialSettings }: Props) {
         </div>
       </Section>
 
+      {/* ── Havale / EFT Banka Bilgileri ────────────────── */}
+      <Section
+        title="🏦 Havale / EFT Banka Bilgileri"
+        description="Müşterilere gösterilecek banka hesap bilgileri. Boş bırakılırsa havale seçeneği çalışmaya devam eder ancak 'Belirtilmemiş' gösterilir."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Banka Adı" hint='Örn: "Ziraat Bankası"'>
+            <input
+              className={inputClass}
+              value={get('payment.bank.name')}
+              onChange={(e) => set('payment.bank.name', e.target.value)}
+              placeholder="Ziraat Bankası"
+            />
+          </Field>
+          <Field label="Şube" hint="İsteğe bağlı.">
+            <input
+              className={inputClass}
+              value={get('payment.bank.branch')}
+              onChange={(e) => set('payment.bank.branch', e.target.value)}
+              placeholder="Örn: Kadıköy Şubesi"
+            />
+          </Field>
+        </div>
+        <Field label="Hesap Sahibi">
+          <input
+            className={inputClass}
+            value={get('payment.bank.account_holder')}
+            onChange={(e) => set('payment.bank.account_holder', e.target.value)}
+            placeholder="Ad Soyad veya Şirket Adı"
+          />
+        </Field>
+        <Field label="IBAN" hint="Boşluksuz veya boşluklu girilebilir.">
+          <input
+            className={inputClass}
+            value={get('payment.bank.iban')}
+            onChange={(e) => set('payment.bank.iban', e.target.value)}
+            placeholder="TR00 0000 0000 0000 0000 0000 00"
+          />
+        </Field>
+        <Field label="Ek Açıklama" hint='Müşteriye gösterilecek not. Örn: "Açıklama kısmına sipariş numaranızı yazmayı unutmayınız."'>
+          <input
+            className={inputClass}
+            value={get('payment.bank.description')}
+            onChange={(e) => set('payment.bank.description', e.target.value)}
+            placeholder="Havale açıklamasına sipariş numaranızı yazınız."
+          />
+        </Field>
+      </Section>
+
       {/* ── Nav Links ───────────────────────────────────── */}
       <Section
         title="🔗 Navigasyon Linkleri"

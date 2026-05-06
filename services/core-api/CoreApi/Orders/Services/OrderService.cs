@@ -274,15 +274,16 @@ public class OrderService : IOrderService
             .Take(filter.PageSize)
             .Select(o => new OrderListItem
             {
-                Id          = o.Id,
-                OrderNumber = o.OrderNumber,
-                Status      = o.Status,
-                StatusLabel = o.Status.ToString(),
-                TotalAmount = o.TotalAmount,
-                Currency    = o.Currency,
-                ItemCount   = o.Items.Count,
-                CreatedAt   = o.CreatedAt,
-                UpdatedAt   = o.UpdatedAt
+                Id            = o.Id,
+                OrderNumber   = o.OrderNumber,
+                Status        = o.Status,
+                StatusLabel   = o.Status.ToString(),
+                TotalAmount   = o.TotalAmount,
+                Currency      = o.Currency,
+                ItemCount     = o.Items.Count,
+                PaymentMethod = o.PaymentMethod,
+                CreatedAt     = o.CreatedAt,
+                UpdatedAt     = o.UpdatedAt
             })
             .ToListAsync();
 
@@ -427,6 +428,7 @@ public class OrderService : IOrderService
         TotalAmount     = o.TotalAmount,
         Notes           = o.Notes,
         CancelReason    = o.CancelReason,
+        PaymentMethod   = o.PaymentMethod,
         CreatedAt       = o.CreatedAt,
         UpdatedAt       = o.UpdatedAt,
         ShippingAddress = MapAddressResponse(o.ShippingAddress),

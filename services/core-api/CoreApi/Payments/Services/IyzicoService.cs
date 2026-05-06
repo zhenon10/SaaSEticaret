@@ -47,6 +47,8 @@ public class IyzicoService : IPaymentService
 
         var s = _settings.Value;
 
+        order.PaymentMethod = CoreApi.Orders.Entities.PaymentMethod.CreditCard;
+
         if (s.MockPayment)
         {
             var fakeToken = Guid.NewGuid().ToString("N");
@@ -55,6 +57,7 @@ public class IyzicoService : IPaymentService
                 OrderId  = orderId,
                 Token    = fakeToken,
                 Status   = "pending",
+                Method   = "iyzico",
                 Amount   = order.TotalAmount,
                 Currency = order.Currency,
             });

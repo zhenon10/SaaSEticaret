@@ -59,6 +59,7 @@ export default async function OrdersPage({ searchParams }: Props) {
               <th className="px-4 py-3 text-left font-medium">Sipariş No</th>
               <th className="px-4 py-3 text-left font-medium">Tarih</th>
               <th className="px-4 py-3 text-center font-medium">Durum</th>
+              <th className="px-4 py-3 text-center font-medium">Ödeme</th>
               <th className="px-4 py-3 text-center font-medium">Ürün</th>
               <th className="px-4 py-3 text-right font-medium">Tutar</th>
               <th className="px-4 py-3 text-right font-medium">İşlem</th>
@@ -78,6 +79,15 @@ export default async function OrdersPage({ searchParams }: Props) {
                     <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColor[order.status]}`}>
                       {order.statusLabel}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {order.paymentMethod === 'BankTransfer' ? (
+                      <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">Havale/EFT</span>
+                    ) : order.paymentMethod === 'CreditCard' ? (
+                      <span className="rounded-full bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800">Kart</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center text-muted-foreground">{order.itemCount}</td>
                   <td className="px-4 py-3 text-right font-medium">{formatPrice(order.totalAmount, order.currency)}</td>

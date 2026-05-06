@@ -8,7 +8,7 @@ export { createOrderService } from './services/orders';
 export { createSettingsService } from './services/settings';
 export { createAddressService } from './services/addresses';
 export { createPaymentService } from './services/payments';
-export type { InitiatePaymentResponse } from './services/payments';
+export type { InitiatePaymentResponse, BankTransferResponse } from './services/payments';
 
 import { createApiClient } from './client';
 import { createAuthService } from './services/auth';

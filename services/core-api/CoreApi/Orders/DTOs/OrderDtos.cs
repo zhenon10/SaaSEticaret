@@ -151,15 +151,16 @@ public class OrderItemResponse
 
 public class OrderListItem
 {
-    public Guid        Id             { get; set; }
-    public string      OrderNumber    { get; set; } = string.Empty;
-    public OrderStatus Status         { get; set; }
-    public string      StatusLabel    { get; set; } = string.Empty;
-    public decimal     TotalAmount    { get; set; }
-    public string      Currency       { get; set; } = string.Empty;
-    public int         ItemCount      { get; set; }
-    public DateTime    CreatedAt      { get; set; }
-    public DateTime?   UpdatedAt      { get; set; }
+    public Guid           Id             { get; set; }
+    public string         OrderNumber    { get; set; } = string.Empty;
+    public OrderStatus    Status         { get; set; }
+    public string         StatusLabel    { get; set; } = string.Empty;
+    public decimal        TotalAmount    { get; set; }
+    public string         Currency       { get; set; } = string.Empty;
+    public int            ItemCount      { get; set; }
+    public PaymentMethod? PaymentMethod  { get; set; }
+    public DateTime       CreatedAt      { get; set; }
+    public DateTime?      UpdatedAt      { get; set; }
 }
 
 public class OrderResponse
@@ -176,10 +177,11 @@ public class OrderResponse
     public decimal     TaxAmount      { get; set; }
     public decimal     ShippingAmount { get; set; }
     public decimal     TotalAmount    { get; set; }
-    public string?     Notes          { get; set; }
-    public string?     CancelReason   { get; set; }
-    public DateTime    CreatedAt      { get; set; }
-    public DateTime?   UpdatedAt      { get; set; }
+    public string?        Notes          { get; set; }
+    public string?        CancelReason   { get; set; }
+    public PaymentMethod? PaymentMethod  { get; set; }
+    public DateTime       CreatedAt      { get; set; }
+    public DateTime?      UpdatedAt      { get; set; }
 
     public AddressResponse          ShippingAddress { get; set; } = null!;
     public AddressResponse          BillingAddress  { get; set; } = null!;

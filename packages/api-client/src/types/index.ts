@@ -277,6 +277,8 @@ export interface OrderItem {
   totalPrice: number;
 }
 
+export type PaymentMethod = 'CreditCard' | 'BankTransfer';
+
 export interface Order {
   id: string;
   userId?: string;
@@ -292,6 +294,7 @@ export interface Order {
   totalAmount: number;
   notes?: string;
   cancelReason?: string;
+  paymentMethod?: PaymentMethod;
   shippingAddress: Address;
   billingAddress: Address;
   items: OrderItem[];
@@ -307,6 +310,7 @@ export interface OrderListItem {
   totalAmount: number;
   currency: string;
   itemCount: number;
+  paymentMethod?: PaymentMethod;
   createdAt: string;
   updatedAt?: string;
 }

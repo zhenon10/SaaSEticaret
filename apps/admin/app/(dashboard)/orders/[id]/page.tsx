@@ -3,11 +3,21 @@ import { notFound } from 'next/navigation';
 import { getServerApi } from '@/lib/server-api';
 import { formatPrice, formatDate } from '@/lib/utils';
 import OrderStatusForm from '@/components/OrderStatusForm';
-import type { OrderStatus } from '@saas/api-client';
+import type { OrderStatus, PaymentMethod } from '@saas/api-client';
 
 export const metadata: Metadata = { title: 'Sipariş Detayı' };
 
 interface Props { params: Promise<{ id: string }> }
+
+const paymentMethodLabel: Record<PaymentMethod, string> = {
+  CreditCard:   'Kredi / Banka Kartı (İyzico)',
+  BankTransfer: 'Havale / EFT',
+};
+
+const paymentMethodColor: Record<PaymentMethod, string> = {
+  CreditCard:   'bg-purple-100 text-purple-800',
+  BankTransfer: 'bg-blue-100 text-blue-800',
+};
 
 const statusColor: Record<OrderStatus, string> = {
   Pending: 'bg-yellow-100 text-yellow-800',
@@ -45,6 +55,16 @@ export default async function OrderDetailPage({ params }: Props) {
           {order.statusLabel}
         </span>
       </div>
+
+      {/* Payment method badge */}
+      {order.paymentMethod && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Ödeme Yöntemi:</span>
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${paymentMethodColor[order.paymentMethod]}`}>
+            {paymentMethodLabel[order.paymentMethod]}
+          </span>
+        </div>
+      )}
 
       {/* Status update */}
       <OrderStatusForm orderId={order.id} currentStatus={order.status} />

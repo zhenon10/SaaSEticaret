@@ -312,6 +312,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.TotalAmount).HasColumnName("total_amount").HasColumnType("numeric(18,2)");
             entity.Property(e => e.Notes).HasColumnName("notes").HasMaxLength(1000);
             entity.Property(e => e.CancelReason).HasColumnName("cancel_reason").HasMaxLength(500);
+            entity.Property(e => e.PaymentMethod).HasColumnName("payment_method").HasConversion<string>().HasMaxLength(30);
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
@@ -379,6 +380,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.OrderId).HasColumnName("order_id");
             entity.Property(e => e.Token).HasColumnName("token").HasMaxLength(500).IsRequired();
             entity.Property(e => e.Status).HasColumnName("status").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Method).HasColumnName("method").HasMaxLength(30).IsRequired().HasDefaultValue("iyzico");
             entity.Property(e => e.IyzicoPaymentId).HasColumnName("iyzico_payment_id").HasMaxLength(100);
             entity.Property(e => e.ErrorCode).HasColumnName("error_code").HasMaxLength(100);
             entity.Property(e => e.ErrorMessage).HasColumnName("error_message").HasMaxLength(500);

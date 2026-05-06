@@ -13,6 +13,12 @@ public enum OrderStatus
     Refunded    // After delivery
 }
 
+public enum PaymentMethod
+{
+    CreditCard,   // İyzico kredi/banka kartı
+    BankTransfer, // Havale/EFT
+}
+
 // ── Address (owned type — stored as columns in the orders table) ──────────────
 
 public class Address
@@ -65,8 +71,9 @@ public class Order : BaseEntityWithAudit
     public decimal     TaxAmount      { get; set; }
     public decimal     ShippingAmount { get; set; }
     public decimal     TotalAmount    { get; set; }
-    public string?     Notes          { get; set; }
-    public string?     CancelReason   { get; set; }
+    public string?        Notes          { get; set; }
+    public string?        CancelReason   { get; set; }
+    public PaymentMethod? PaymentMethod  { get; set; }
 
     // Owned value objects — stored as flat columns
     public Address ShippingAddress { get; set; } = new();
