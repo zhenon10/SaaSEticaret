@@ -116,13 +116,13 @@ export default function ProductForm({ categories, product }: Props) {
     if (!isEditing) return;
     try {
       await api.catalog.removeImage(product.id, id);
-      setSavedImages((prev) => prev.filter((img) => img.id !== id));
     } catch (e) {
-      const msg = e instanceof ApiError
-        ? `Görsel silinemedi. (HTTP ${e.status}${e.message !== `HTTP ${e.status}` ? ': ' + e.message : ''})`
-        : e instanceof Error ? `Görsel silinemedi. (${e.message})` : 'Görsel silinemedi.';
-      setError(msg);
+      if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
+        setError(`Görsel silinemedi. (HTTP ${e.status})`);
+        return;
+      }
     }
+    setSavedImages((prev) => prev.filter((img) => img.id !== id));
   };
 
   const onSubmit = async (data: FormValues) => {
