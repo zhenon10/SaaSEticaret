@@ -7,6 +7,7 @@ import CartBadge from './CartBadge';
 import FavoriteBadge from './FavoriteBadge';
 import CategoryFlyout from './CategoryFlyout';
 import { api } from '@/lib/api';
+import type { Category } from '@saas/api-client';
 
 const DEFAULT_NAV_LINKS = [
   { label: 'Yeni Gelenler', href: '/products' },
@@ -22,7 +23,7 @@ export default async function Header() {
   let storeName = 'mağaza';
   let userName = '';
   let userPhone: string | undefined;
-  let categories: { id: string; name: string; slug: string; parentId: string | null | undefined; isActive: boolean }[] = [];
+  let categories: Category[] = [];
 
   try {
     const [settings, cats] = await Promise.all([

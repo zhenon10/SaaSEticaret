@@ -3,14 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Menu, ChevronRight } from 'lucide-react';
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  parentId: string | null | undefined;
-  isActive: boolean;
-}
+import type { Category } from '@saas/api-client';
 
 interface Props {
   categories: Category[];
