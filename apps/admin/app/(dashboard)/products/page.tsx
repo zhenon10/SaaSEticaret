@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import DeleteProductButton from '@/components/DeleteProductButton';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Ürünler' };
 
 interface Props {

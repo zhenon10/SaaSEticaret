@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { api } from '@/lib/api';
 import ProductForm from '@/components/ProductForm';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Ürün Düzenle' };
 
 interface Props { params: Promise<{ id: string }> }

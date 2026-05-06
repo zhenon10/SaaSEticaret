@@ -10,10 +10,12 @@ public class UploadController : ControllerBase
     private const long MaxFileSize = 5 * 1024 * 1024; // 5 MB
 
     private readonly IWebHostEnvironment _env;
+    private readonly IConfiguration _config;
 
-    public UploadController(IWebHostEnvironment env)
+    public UploadController(IWebHostEnvironment env, IConfiguration config)
     {
         _env = env;
+        _config = config;
     }
 
     [HttpPost]
@@ -39,7 +41,8 @@ public class UploadController : ControllerBase
         await using var stream = System.IO.File.Create(filePath);
         await file.CopyToAsync(stream);
 
-        var url = $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
+        var baseUrl = _config["APP_BASE_URL"]?.TrimEnd('/') ?? $"{Request.Scheme}://{Request.Host}";
+        var url = $"{baseUrl}/uploads/{fileName}";
         return Ok(new { url });
     }
 }

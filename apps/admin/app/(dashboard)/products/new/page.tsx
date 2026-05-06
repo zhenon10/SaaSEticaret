@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { api } from '@/lib/api';
 import ProductForm from '@/components/ProductForm';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Yeni Ürün' };
 
 export default async function NewProductPage() {
