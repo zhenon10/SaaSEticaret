@@ -22,7 +22,7 @@ export default async function Header() {
   let storeName = 'mağaza';
   let userName = '';
   let userPhone: string | undefined;
-  let categories: { id: string; name: string; slug: string; parentId: string | null; isActive: boolean }[] = [];
+  let categories: { id: string; name: string; slug: string; parentId: string | null | undefined; isActive: boolean }[] = [];
 
   try {
     const [settings, cats] = await Promise.all([
