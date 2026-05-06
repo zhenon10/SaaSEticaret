@@ -134,7 +134,7 @@ export default async function HomePage() {
               return (
                 <Link
                   key={cat.id}
-                  href={`/products?category=${cat.slug}`}
+                  href={`/products?category=${cat.id}`}
                   className="group flex flex-col items-center gap-1.5 rounded-lg border border-gray-100 bg-white p-2 text-center shadow-sm transition-all hover:border-primary hover:shadow-md sm:gap-2 sm:p-3"
                 >
                   <div className={`flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${bg} ${fg} transition-colors group-hover:bg-primary group-hover:text-white`}>
