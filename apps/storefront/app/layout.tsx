@@ -40,20 +40,36 @@ function computePrimaryEnd(hsl: string): string {
   return `${(h + 20) % 360} ${Math.max(s - 10, 0)}% ${Math.min(l + 18, 88)}%`;
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kumandacibaba.com';
+
 export async function generateMetadata(): Promise<Metadata> {
+  let name = 'Mağaza';
+  let description = 'Online alışveriş platformu';
   try {
     const settings = await api.settings.getAll();
-    const name = settings['store.name'] || 'Mağaza';
-    return {
-      title: { default: name, template: `%s | ${name}` },
-      description: 'Online alışveriş platformu',
-    };
-  } catch {
-    return {
-      title: { default: 'Mağaza', template: '%s | Mağaza' },
-      description: 'Online alışveriş platformu',
-    };
-  }
+    name        = settings['store.name']        || 'Mağaza';
+    description = settings['store.description'] || `${name} — online alışveriş`;
+  } catch { /* use defaults */ }
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: name, template: `%s | ${name}` },
+    description,
+    robots: { index: true, follow: true },
+    openGraph: {
+      type:        'website',
+      siteName:    name,
+      title:       name,
+      description,
+      url:         SITE_URL,
+      locale:      'tr_TR',
+    },
+    twitter: {
+      card:        'summary_large_image',
+      title:       name,
+      description,
+    },
+  };
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

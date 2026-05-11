@@ -5,8 +5,58 @@ import ProductCard from '@/components/ProductCard';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import type { Category, ProductListItem, PagedResult } from '@saas/api-client';
 
-export const metadata: Metadata = { title: 'Ürünler' };
 export const revalidate = 60;
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kumandacibaba.com';
+
+interface Props {
+  searchParams: Promise<{
+    search?: string;
+    category?: string;
+    page?: string;
+    inStock?: string;
+    featured?: string;
+  }>;
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const params = await searchParams;
+
+  let title = 'Ürünler';
+  let description = 'Tüm ürünleri incele, en uygun fiyatlarla alışveriş yap.';
+
+  if (params.search) {
+    title       = `"${params.search}" için sonuçlar`;
+    description = `${params.search} araması için ürün sonuçları.`;
+  } else if (params.category) {
+    try {
+      const cats = await api.catalog.getCategoryTree();
+      function findCat(list: Category[], id: string): Category | undefined {
+        for (const c of list) {
+          if (c.id === id) return c;
+          const found = findCat(c.children ?? [], id);
+          if (found) return found;
+        }
+      }
+      const cat = findCat(cats, params.category);
+      if (cat) {
+        title       = cat.name;
+        description = `${cat.name} kategorisindeki tüm ürünleri incele.`;
+      }
+    } catch { /* keep defaults */ }
+  }
+
+  const canonical = params.category
+    ? `${SITE_URL}/products?category=${params.category}`
+    : `${SITE_URL}/products`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph:  { title, description, url: canonical, type: 'website' },
+  };
+}
 
 function isOrHasActive(cat: Category, activeId?: string): boolean {
   if (!activeId) return false;
@@ -62,16 +112,6 @@ function CategorySidebarItem({
         ))}
     </>
   );
-}
-
-interface Props {
-  searchParams: Promise<{
-    search?: string;
-    category?: string;
-    page?: string;
-    inStock?: string;
-    featured?: string;
-  }>;
 }
 
 export default async function ProductsPage({ searchParams }: Props) {

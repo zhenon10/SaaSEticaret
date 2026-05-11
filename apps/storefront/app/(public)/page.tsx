@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
@@ -5,6 +6,30 @@ import { getCategoryVisual } from '@/components/CategoryIcon';
 import type { Category } from '@saas/api-client';
 
 export const dynamic = 'force-dynamic';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kumandacibaba.com';
+
+export async function generateMetadata(): Promise<Metadata> {
+  let name = 'Mağaza';
+  let description = 'Online alışveriş platformu';
+  try {
+    const settings = await api.settings.getAll();
+    name        = settings['store.name']        || 'Mağaza';
+    description = settings['store.description'] || `${name} — En uygun fiyatlarla online alışveriş`;
+  } catch { /* use defaults */ }
+
+  return {
+    title:       name,
+    description,
+    alternates:  { canonical: SITE_URL },
+    openGraph: {
+      title:       name,
+      description,
+      url:         SITE_URL,
+      type:        'website',
+    },
+  };
+}
 
 function s(settings: Record<string, string>, key: string, fallback = '') {
   return settings[key] ?? fallback;
