@@ -46,6 +46,10 @@ export default function AccountForm({ currentEmail }: Props) {
 
   const handlePasswordSave = async () => {
     setPwStatus(null);
+    if (newPw.length < 8) {
+      setPwStatus({ ok: false, msg: 'Yeni şifre en az 8 karakter olmalıdır.' });
+      return;
+    }
     if (newPw !== newPw2) {
       setPwStatus({ ok: false, msg: 'Yeni şifreler eşleşmiyor.' });
       return;
