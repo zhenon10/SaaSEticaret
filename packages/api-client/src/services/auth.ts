@@ -1,5 +1,5 @@
 import type { ApiClient } from '../client';
-import type { RegisterRequest, LoginRequest, WebLoginResponse, UserInfo, RefreshRequest, UpdateProfileRequest } from '../types';
+import type { RegisterRequest, LoginRequest, WebLoginResponse, UserInfo, RefreshRequest, UpdateProfileRequest, ChangeEmailRequest, ChangePasswordRequest } from '../types';
 
 export function createAuthService(client: ApiClient) {
   return {
@@ -20,5 +20,11 @@ export function createAuthService(client: ApiClient) {
 
     updateProfile: (data: UpdateProfileRequest) =>
       client.put<UserInfo>('/auth/me', data),
+
+    changeEmail: (data: ChangeEmailRequest) =>
+      client.put<{ message: string }>('/auth/me/email', data),
+
+    changePassword: (data: ChangePasswordRequest) =>
+      client.put<{ message: string }>('/auth/me/password', data),
   };
 }

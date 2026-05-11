@@ -17,6 +17,8 @@ public interface IAuthService
     Task<AuthResult> LogoutAsync(string? refreshToken, HttpContext httpContext);
     Task<UserInfoDto?> GetCurrentUserAsync(Guid userId);
     Task<UserInfoDto?> UpdateProfileAsync(Guid userId, UpdateProfileRequest request);
+    Task<(bool Success, string? Error)> ChangeEmailAsync(Guid userId, string newEmail);
+    Task<(bool Success, string? Error)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
 }
 
 public class AuthService : IAuthService
@@ -252,6 +254,36 @@ public class AuthService : IAuthService
 
         var role = user.UserRoles.FirstOrDefault()?.Role?.Name ?? "Customer";
         return BuildUserInfo(user, role);
+    }
+
+    public async Task<(bool Success, string? Error)> ChangeEmailAsync(Guid userId, string newEmail)
+    {
+        var emailInUse = await _context.Users.AnyAsync(u => u.Email == newEmail && u.Id != userId);
+        if (emailInUse)
+            return (false, "Bu e-posta adresi zaten kullanılıyor.");
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return (false, "Kullanıcı bulunamadı.");
+
+        user.Email = newEmail;
+        await _context.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Success, string? Error)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return (false, "Kullanıcı bulunamadı.");
+
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, currentPassword);
+        if (result == PasswordVerificationResult.Failed)
+            return (false, "Mevcut şifre hatalı.");
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
+        await _context.SaveChangesAsync();
+        return (true, null);
     }
 
     private static string HashToken(string token)

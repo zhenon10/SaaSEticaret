@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Package, Tags, ShoppingBag, Warehouse, Settings, LogOut,
+  Package, Tags, ShoppingBag, Warehouse, Settings, LogOut, UserCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -14,6 +14,7 @@ const nav = [
   { href: '/orders',     label: 'Siparişler',    icon: ShoppingBag },
   { href: '/inventory',  label: 'Stok',          icon: Warehouse },
   { href: '/settings',   label: 'Site Ayarları', icon: Settings },
+  { href: '/account',    label: 'Hesabım',       icon: UserCog },
 ];
 
 export default function Sidebar() {

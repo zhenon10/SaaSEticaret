@@ -18,6 +18,15 @@ export interface UpdateProfileRequest {
   marketingConsent: boolean;
 }
 
+export interface ChangeEmailRequest {
+  newEmail: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 // ── Addresses ─────────────────────────────────────────────────────────────────
 
 export interface UserAddress {

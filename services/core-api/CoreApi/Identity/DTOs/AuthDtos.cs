@@ -93,6 +93,24 @@ public class UpdateProfileRequest
     public bool MarketingConsent { get; set; }
 }
 
+public class ChangeEmailRequest
+{
+    [Required]
+    [EmailAddress]
+    [MaxLength(255)]
+    public string NewEmail { get; set; } = string.Empty;
+}
+
+public class ChangePasswordRequest
+{
+    [Required]
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(8, ErrorMessage = "Şifre en az 8 karakter olmalıdır.")]
+    public string NewPassword { get; set; } = string.Empty;
+}
+
 public class AuthResult
 {
     public bool        Success      { get; set; }

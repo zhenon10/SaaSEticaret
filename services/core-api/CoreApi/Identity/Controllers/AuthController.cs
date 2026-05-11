@@ -174,6 +174,42 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
+    [HttpPut("me/email")]
+    [Authorize]
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { error = "Geçersiz istek.", details = ModelState });
+
+        var userIdClaim = User.FindFirstValue("sub");
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Geçersiz token." });
+
+        var (success, error) = await _authService.ChangeEmailAsync(userId, request.NewEmail);
+        if (!success)
+            return Conflict(new { error });
+
+        return Ok(new { message = "E-posta güncellendi." });
+    }
+
+    [HttpPut("me/password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { error = "Geçersiz istek.", details = ModelState });
+
+        var userIdClaim = User.FindFirstValue("sub");
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { error = "Geçersiz token." });
+
+        var (success, error) = await _authService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
+        if (!success)
+            return BadRequest(new { error });
+
+        return Ok(new { message = "Şifre güncellendi." });
+    }
+
     private bool IsAdminHost()
     {
         if (HttpContext.Request.Headers.ContainsKey("X-Admin-Client"))
