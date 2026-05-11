@@ -22,6 +22,14 @@ export async function POST(request: NextRequest) {
     const accessToken = data.AccessToken ?? data.accessToken;
     const refreshToken = data.RefreshToken ?? data.refreshToken;
     const user = data.User ?? data.user;
+    const role: string = user?.role ?? user?.Role ?? '';
+
+    if (role !== 'Admin' && role !== 'Staff') {
+      return NextResponse.json(
+        { error: 'Bu hesap yönetici paneline erişim yetkisine sahip değil.' },
+        { status: 403 },
+      );
+    }
 
     const response = NextResponse.json({ user });
 

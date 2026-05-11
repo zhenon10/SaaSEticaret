@@ -29,7 +29,11 @@ export default function AdminLoginPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(res.status === 401 ? 'E-posta veya şifre hatalı.' : (body?.message ?? 'Giriş başarısız.'));
+        setError(
+          res.status === 401 ? 'E-posta veya şifre hatalı.' :
+          res.status === 403 ? (body?.error ?? 'Bu hesap yönetici paneline erişemez.') :
+          (body?.error ?? body?.message ?? 'Giriş başarısız.'),
+        );
         return;
       }
       window.location.href = '/products';
