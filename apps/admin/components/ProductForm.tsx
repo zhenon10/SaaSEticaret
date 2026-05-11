@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { api } from '@/lib/api';
 import { ApiError } from '@saas/api-client';
 import type { Product } from '@saas/api-client';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Camera } from 'lucide-react';
 
 const schema = z.object({
   name: z.string().min(2, 'İsim zorunlu'),
@@ -335,13 +335,32 @@ export default function ProductForm({ categories, product }: Props) {
               </button>
             </div>
           ))}
+          {/* Galeriden seç */}
           <label className={`flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${imageLoading ? 'opacity-50 cursor-wait' : 'text-muted-foreground hover:border-primary hover:text-primary'}`}>
             <Plus className="h-6 w-6" />
-            <span className="text-xs mt-1">{imageLoading ? 'Yükleniyor...' : 'Görsel Ekle'}</span>
+            <span className="text-xs mt-1">{imageLoading ? 'Yükleniyor...' : 'Galeri'}</span>
             <input
               type="file"
               accept="image/*"
               multiple
+              disabled={imageLoading}
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                e.target.value = '';
+                if (files.length) handleUpload(files);
+              }}
+            />
+          </label>
+
+          {/* Kameradan çek (mobilde arka kamerayı açar) */}
+          <label className={`flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${imageLoading ? 'opacity-50 cursor-wait' : 'text-muted-foreground hover:border-primary hover:text-primary'}`}>
+            <Camera className="h-6 w-6" />
+            <span className="text-xs mt-1">Kamera</span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
               disabled={imageLoading}
               className="hidden"
               onChange={(e) => {
