@@ -54,6 +54,14 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
 
+  let whatsappPhone = '';
+  try {
+    const settings = await api.settings.getAll();
+    const raw = settings['footer.contact.phone'] ?? '';
+    const digits = raw.replace(/\D/g, '');
+    whatsappPhone = digits.startsWith('0') ? '90' + digits.slice(1) : digits;
+  } catch { /* no phone configured */ }
+
   const url         = `${SITE_URL}/products/${slug}`;
   const description = product.description ?? `${product.name} — en uygun fiyatla satın al`;
   const images      = product.images?.map((i) => i.url) ?? [];
@@ -88,7 +96,7 @@ export default async function ProductDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ProductDetailClient product={product} />
+      <ProductDetailClient product={product} whatsappPhone={whatsappPhone} productUrl={url} />
     </>
   );
 }
