@@ -58,6 +58,7 @@ export default async function HomePage() {
 
   const displayProducts = featuredProducts.length > 0 ? featuredProducts : newProducts;
 
+  const heroEnabled = s(settings, 'hero.enabled', 'true') !== 'false';
   const heroImage   = s(settings, 'hero.image', '');
   const heroBadge   = s(settings, 'hero.badge',    'Yeni Sezon Koleksiyonu');
   const heroTitle   = s(settings, 'hero.title',    'Trendleri Yakala');
@@ -101,7 +102,7 @@ export default async function HomePage() {
     <div className="bg-gray-50">
 
       {/* ── Hero Banner ────────────────────────────────────────── */}
-      <section
+      {heroEnabled && <section
         className="relative overflow-hidden"
         style={heroImage
           ? { backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -148,7 +149,7 @@ export default async function HomePage() {
         </div>
         {!heroImage && <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10" />}
         {!heroImage && <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-white/5" />}
-      </section>
+      </section>}
 
       {/* ── Kategori Hızlı Linkler ─────────────────────────────── */}
       {categories.length > 0 && (

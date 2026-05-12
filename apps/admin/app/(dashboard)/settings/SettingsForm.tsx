@@ -180,6 +180,17 @@ export default function SettingsForm({ initialSettings }: Props) {
         title="🏷️ Hero Banner"
         description="Ana sayfanın üst bölümündeki büyük tanıtım alanı."
       >
+        <Field label="">
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded"
+              checked={get('hero.enabled', 'true') !== 'false'}
+              onChange={(e) => set('hero.enabled', e.target.checked ? 'true' : 'false')}
+            />
+            <span className="text-sm font-medium">Hero Banner'ı göster</span>
+          </label>
+        </Field>
         <Field label="Arka Plan Görseli (URL)" hint="Boş bırakılırsa renkli gradient kullanılır.">
           <input
             className={inputClass}
