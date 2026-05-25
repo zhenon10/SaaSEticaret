@@ -341,22 +341,81 @@ export default function SettingsForm({ initialSettings }: Props) {
             className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             value={get('footer.description')}
             onChange={(e) => set('footer.description', e.target.value)}
-            placeholder="Türkiye'nin güvenilir online alışveriş platformu."
+            placeholder="Ayakkabı mağazası kısa tanıtım metni"
           />
         </Field>
 
-        {/* Contact */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Footer arka plan">
+            <input className={inputClass} value={get('footer.background')} onChange={(e) => set('footer.background', e.target.value)} placeholder="#1e3a5f" />
+          </Field>
+          <Field label="Footer metin rengi">
+            <input className={inputClass} value={get('footer.textColor')} onChange={(e) => set('footer.textColor', e.target.value)} placeholder="#f8fafc" />
+          </Field>
+        </div>
+
+        <div className="flex flex-wrap gap-4 text-sm">
+          {[
+            { key: 'footer.showTrustBar', label: 'Üst güven şeridi' },
+            { key: 'footer.useCategoryLinks', label: "Kategorileri API'den al" },
+            { key: 'footer.whatsapp.enabled', label: 'WhatsApp butonu' },
+            { key: 'footer.newsletter.enabled', label: 'Bülten formu' },
+          ].map(({ key, label }) => (
+            <label key={key} className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={get(key) !== 'false'}
+                onChange={(e) => set(key, e.target.checked ? 'true' : 'false')}
+                className="rounded border-input"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+
+        <Field label="Adres">
+          <textarea
+            rows={2}
+            className={textareaClass}
+            value={get('footer.contact.address')}
+            onChange={(e) => set('footer.contact.address', e.target.value)}
+            placeholder="Mağaza adresi"
+          />
+        </Field>
+
         <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="📧 E-posta">
+          <Field label="E-posta">
             <input className={inputClass} value={get('footer.contact.email')} onChange={(e) => set('footer.contact.email', e.target.value)} placeholder="destek@magaza.com" />
           </Field>
-          <Field label="📞 Telefon">
+          <Field label="Telefon">
             <input className={inputClass} value={get('footer.contact.phone')} onChange={(e) => set('footer.contact.phone', e.target.value)} placeholder="0850 000 00 00" />
           </Field>
-          <Field label="🕐 Çalışma Saatleri">
+          <Field label="Çalışma saatleri">
             <input className={inputClass} value={get('footer.contact.hours')} onChange={(e) => set('footer.contact.hours', e.target.value)} placeholder="Hafta içi 09:00 – 18:00" />
           </Field>
         </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Instagram URL">
+            <input className={inputClass} value={get('footer.social.instagram')} onChange={(e) => set('footer.social.instagram', e.target.value)} placeholder="https://instagram.com/..." />
+          </Field>
+          <Field label="Facebook URL">
+            <input className={inputClass} value={get('footer.social.facebook')} onChange={(e) => set('footer.social.facebook', e.target.value)} placeholder="https://facebook.com/..." />
+          </Field>
+        </div>
+
+        <Field label="ETBİS linki" hint="Boş bırakılırsa rozet gösterilmez.">
+          <input className={inputClass} value={get('footer.etbis.url')} onChange={(e) => set('footer.etbis.url', e.target.value)} placeholder="https://..." />
+        </Field>
+
+        <Field label="Hızlı erişim (JSON)" hint='Örn: [{"label":"Ana Sayfa","href":"/"}]'>
+          <textarea
+            rows={2}
+            className={textareaClass}
+            value={get('footer.sitemap')}
+            onChange={(e) => set('footer.sitemap', e.target.value)}
+          />
+        </Field>
 
         {/* Link columns */}
         <div className="space-y-4">

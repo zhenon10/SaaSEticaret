@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { Menu, ChevronRight } from 'lucide-react';
+import { categoryProductsHref } from '@/lib/categories';
 import type { Category } from '@saas/api-client';
 
 interface Props {
@@ -55,7 +56,7 @@ export default function CategoryFlyout({ categories }: Props) {
             return (
               <div key={root.id}>
                 <Link
-                  href={`/products?category=${root.id}`}
+                  href={categoryProductsHref(root.slug)}
                   onClick={() => setOpen(false)}
                   className="flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 hover:text-primary"
                 >
@@ -65,7 +66,7 @@ export default function CategoryFlyout({ categories }: Props) {
                 {subs.map((sub) => (
                   <Link
                     key={sub.id}
-                    href={`/products?category=${sub.id}`}
+                    href={categoryProductsHref(sub.slug)}
                     onClick={() => setOpen(false)}
                     className="flex items-center py-1.5 pl-8 pr-4 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary"
                   >

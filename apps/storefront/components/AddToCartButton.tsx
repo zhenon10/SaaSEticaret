@@ -16,24 +16,52 @@ interface Props {
   sku?: string;
   color?: string;
   size?: string;
+  quantity?: number;
+  disabled?: boolean;
+  compact?: boolean;
+  className?: string;
+  onBeforeAdd?: () => boolean;
 }
 
 export default function AddToCartButton({
-  productId, productName, productSlug, unitPrice, productImage, sku, color, size,
+  productId,
+  productName,
+  productSlug,
+  unitPrice,
+  productImage,
+  sku,
+  color,
+  size,
+  quantity = 1,
+  disabled = false,
+  compact = false,
+  className,
+  onBeforeAdd,
 }: Props) {
   const { isGuest, addGuestItem, refreshUserCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
   const handleAdd = async () => {
+    if (onBeforeAdd && !onBeforeAdd()) return;
     setLoading(true);
     setMessage('');
     try {
       if (isGuest) {
-        addGuestItem({ productId, productName, productSlug, unitPrice, productImage, sku, color, size, quantity: 1 });
+        addGuestItem({
+          productId,
+          productName,
+          productSlug,
+          unitPrice,
+          productImage,
+          sku,
+          color,
+          size,
+          quantity,
+        });
         setMessage('Sepete eklendi!');
       } else {
-        await api.cart.addItem({ productId, quantity: 1, color, size });
+        await api.cart.addItem({ productId, quantity, color, size });
         refreshUserCart();
         setMessage('Sepete eklendi!');
       }
@@ -45,12 +73,19 @@ export default function AddToCartButton({
   };
 
   return (
-    <div className="space-y-2">
-      <Button onClick={handleAdd} disabled={loading} size="lg" className="w-full gap-2">
+    <div className={compact ? 'space-y-0' : 'space-y-2'}>
+      <Button
+        onClick={handleAdd}
+        disabled={loading || disabled}
+        size={compact ? 'default' : 'lg'}
+        className={className ?? 'w-full gap-2'}
+      >
         <ShoppingCart className="h-4 w-4" />
-        {loading ? 'Ekleniyor...' : 'Sepete Ekle'}
+        {loading ? 'Ekleniyor...' : compact ? 'Sepete Ekle' : 'Sepete Ekle'}
       </Button>
-      {message && <p className="text-sm text-center text-muted-foreground">{message}</p>}
+      {!compact && message && (
+        <p className="text-center text-sm text-muted-foreground">{message}</p>
+      )}
     </div>
   );
 }

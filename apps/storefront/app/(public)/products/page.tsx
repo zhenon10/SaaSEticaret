@@ -1,9 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { api } from '@/lib/api';
 import ProductCard from '@/components/ProductCard';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import type { Category, ProductListItem, PagedResult } from '@saas/api-client';
+import {
+  categoryProductsHref,
+  findCategoryByIdOrSlug,
+  isCategoryUuid,
+  resolveCategoryId,
+  resolveCategorySlug,
+} from '@/lib/categories';
 
 export const revalidate = 60;
 
@@ -31,14 +39,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   } else if (params.category) {
     try {
       const cats = await api.catalog.getCategoryTree();
-      function findCat(list: Category[], id: string): Category | undefined {
-        for (const c of list) {
-          if (c.id === id) return c;
-          const found = findCat(c.children ?? [], id);
-          if (found) return found;
-        }
-      }
-      const cat = findCat(cats, params.category);
+      const cat = findCategoryByIdOrSlug(cats, params.category);
       if (cat) {
         title       = cat.name;
         description = `${cat.name} kategorisindeki tüm ürünleri incele.`;
@@ -46,9 +47,14 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     } catch { /* keep defaults */ }
   }
 
-  const canonical = params.category
-    ? `${SITE_URL}/products?category=${params.category}`
-    : `${SITE_URL}/products`;
+  let canonical = `${SITE_URL}/products`;
+  if (params.category) {
+    try {
+      const cats = await api.catalog.getCategoryTree();
+      const slug = resolveCategorySlug(cats, params.category);
+      if (slug) canonical = `${SITE_URL}/products?category=${slug}`;
+    } catch { /* keep default */ }
+  }
 
   return {
     title,
@@ -58,23 +64,23 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   };
 }
 
-function isOrHasActive(cat: Category, activeId?: string): boolean {
-  if (!activeId) return false;
-  if (cat.id === activeId) return true;
-  return (cat.children ?? []).some((c) => isOrHasActive(c, activeId));
+function isOrHasActive(cat: Category, activeSlug?: string): boolean {
+  if (!activeSlug) return false;
+  if (cat.slug === activeSlug) return true;
+  return (cat.children ?? []).some((c) => isOrHasActive(c, activeSlug));
 }
 
 function CategorySidebarItem({
   cat,
-  activeId,
+  activeSlug,
   level = 0,
 }: {
   cat: Category;
-  activeId?: string;
+  activeSlug?: string;
   level?: number;
 }) {
-  const isActive = cat.id === activeId;
-  const expanded = isOrHasActive(cat, activeId);
+  const isActive = cat.slug === activeSlug;
+  const expanded = isOrHasActive(cat, activeSlug);
   const hasChildren = (cat.children?.length ?? 0) > 0;
   const pl = 16 + level * 14;
 
@@ -82,7 +88,7 @@ function CategorySidebarItem({
     <>
       <li>
         <Link
-          href={`/products?category=${cat.id}`}
+          href={categoryProductsHref(cat.slug)}
           style={{ paddingLeft: pl }}
           className={`flex items-center justify-between pr-4 py-2 text-sm transition-colors hover:bg-orange-50 hover:text-primary ${
             isActive
@@ -108,7 +114,7 @@ function CategorySidebarItem({
       </li>
       {hasChildren && expanded &&
         cat.children!.map((child) => (
-          <CategorySidebarItem key={child.id} cat={child} activeId={activeId} level={level + 1} />
+          <CategorySidebarItem key={child.id} cat={child} activeSlug={activeSlug} level={level + 1} />
         ))}
     </>
   );
@@ -122,32 +128,38 @@ export default async function ProductsPage({ searchParams }: Props) {
   let categoryTree: Category[] = [];
 
   try {
-    [result, categoryTree] = await Promise.all([
-      api.catalog.getProducts({
-        search: params.search,
-        categoryId: params.category,
-        inStockOnly: params.inStock === '1',
-        isFeatured: params.featured === '1' ? true : undefined,
-        isActive: true,
-        page,
-        pageSize: 16,
-      }),
-      api.catalog.getCategoryTree(),
-    ]);
+    categoryTree = await api.catalog.getCategoryTree();
+    const categoryId = resolveCategoryId(categoryTree, params.category);
+
+    result = await api.catalog.getProducts({
+      search: params.search,
+      categoryId,
+      inStockOnly: params.inStock === '1',
+      isFeatured: params.featured === '1' ? true : undefined,
+      isActive: true,
+      page,
+      pageSize: 16,
+    });
   } catch {
     // graceful degradation
   }
 
-  function findCategory(cats: Category[], id?: string): Category | undefined {
-    if (!id) return undefined;
-    for (const c of cats) {
-      if (c.id === id) return c;
-      const found = findCategory(c.children ?? [], id);
-      if (found) return found;
-    }
+  const activeCategory = findCategoryByIdOrSlug(categoryTree, params.category);
+  const activeCategorySlug = activeCategory?.slug;
+
+  if (activeCategory && params.category && isCategoryUuid(params.category)) {
+    const qs = new URLSearchParams();
+    qs.set('category', activeCategory.slug);
+    if (params.page && params.page !== '1') qs.set('page', params.page);
+    if (params.search) qs.set('search', params.search);
+    if (params.inStock === '1') qs.set('inStock', '1');
+    if (params.featured === '1') qs.set('featured', '1');
+    redirect(`/products?${qs.toString()}`);
   }
 
-  const activeCategory = findCategory(categoryTree, params.category);
+  const categoryQuery = activeCategorySlug
+    ? `category=${encodeURIComponent(activeCategorySlug)}`
+    : '';
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -173,7 +185,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                   </Link>
                 </li>
                 {categoryTree.map((cat) => (
-                  <CategorySidebarItem key={cat.id} cat={cat} activeId={params.category} />
+                  <CategorySidebarItem key={cat.id} cat={cat} activeSlug={activeCategorySlug} />
                 ))}
               </ul>
             </div>
@@ -186,7 +198,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               <ul className="py-2">
                 <li>
                   <Link
-                    href={params.category ? `/products?category=${params.category}` : '/products'}
+                    href={categoryQuery ? `/products?${categoryQuery}` : '/products'}
                     className={`flex items-center px-4 py-2 text-sm transition-colors hover:text-primary ${
                       params.inStock !== '1' ? 'font-semibold text-primary' : 'text-gray-700'
                     }`}
@@ -196,7 +208,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                 </li>
                 <li>
                   <Link
-                    href={`/products?${params.category ? `category=${params.category}&` : ''}inStock=1`}
+                    href={`/products?${categoryQuery ? `${categoryQuery}&` : ''}inStock=1`}
                     className={`flex items-center px-4 py-2 text-sm transition-colors hover:text-primary ${
                       params.inStock === '1' ? 'font-semibold text-primary' : 'text-gray-700'
                     }`}
@@ -276,7 +288,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               <div className="mt-8 flex items-center justify-center gap-1">
                 {result.hasPrev && (
                   <a
-                    href={`/products?page=${page - 1}${params.category ? `&category=${params.category}` : ''}${params.search ? `&search=${params.search}` : ''}`}
+                    href={`/products?page=${page - 1}${categoryQuery ? `&${categoryQuery}` : ''}${params.search ? `&search=${params.search}` : ''}`}
                     className="flex h-9 items-center rounded border border-gray-200 bg-white px-4 text-sm hover:border-primary hover:text-primary"
                   >
                     ← Önceki
@@ -287,7 +299,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                   return (
                     <a
                       key={p}
-                      href={`/products?page=${p}${params.category ? `&category=${params.category}` : ''}${params.search ? `&search=${params.search}` : ''}`}
+                      href={`/products?page=${p}${categoryQuery ? `&${categoryQuery}` : ''}${params.search ? `&search=${params.search}` : ''}`}
                       className={`flex h-9 w-9 items-center justify-center rounded border text-sm transition-colors ${
                         p === page
                           ? 'border-primary bg-primary text-white'
@@ -300,7 +312,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                 })}
                 {result.hasNext && (
                   <a
-                    href={`/products?page=${page + 1}${params.category ? `&category=${params.category}` : ''}${params.search ? `&search=${params.search}` : ''}`}
+                    href={`/products?page=${page + 1}${categoryQuery ? `&${categoryQuery}` : ''}${params.search ? `&search=${params.search}` : ''}`}
                     className="flex h-9 items-center rounded border border-gray-200 bg-white px-4 text-sm hover:border-primary hover:text-primary"
                   >
                     Sonraki →

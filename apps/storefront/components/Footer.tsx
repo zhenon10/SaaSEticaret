@@ -1,111 +1,142 @@
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { buildFooterViewModel } from '@/lib/footer';
+import { resolveCategoryHref } from '@/lib/categories';
+import FooterTrustBar from '@/components/footer/FooterTrustBar';
+import FooterMobile from '@/components/footer/FooterMobile';
+import FooterNewsletter from '@/components/footer/FooterNewsletter';
+import FooterSocial from '@/components/footer/FooterSocial';
+import FooterContact from '@/components/footer/FooterContact';
+import FooterPaymentBadges from '@/components/footer/FooterPaymentBadges';
+import FooterSitemap from '@/components/footer/FooterSitemap';
+import type { FooterColumn } from '@/lib/footer';
 
-type FooterLink   = { label: string; href: string };
-type FooterColumn = { title: string; links: FooterLink[] };
-
-function parseJson<T>(raw: string | undefined, fallback: T): T {
-  try { if (raw) return JSON.parse(raw) as T; } catch { /* ignore */ }
-  return fallback;
+function DesktopColumn({ col, categories }: { col: FooterColumn; categories: Parameters<typeof resolveCategoryHref>[1] }) {
+  return (
+    <div>
+      <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white">{col.title}</h4>
+      <ul className="space-y-2 text-sm text-white/75">
+        {col.links.map((l) => (
+          <li key={`${l.label}-${l.href}`}>
+            <Link
+              href={resolveCategoryHref(l.href, categories)}
+              className="transition-colors hover:text-white"
+            >
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
-const DEFAULT_COLUMNS: FooterColumn[] = [
-  {
-    title: 'Alışveriş',
-    links: [
-      { label: 'Tüm Ürünler',      href: '/products' },
-      { label: 'Öne Çıkanlar',     href: '/products?featured=1' },
-      { label: 'Yeni Gelenler',    href: '/products' },
-      { label: 'İndirimli Ürünler', href: '/products' },
-    ],
-  },
-  {
-    title: 'Hesabım',
-    links: [
-      { label: 'Giriş Yap',    href: '/login' },
-      { label: 'Siparişlerim', href: '/account/orders' },
-      { label: 'Sepetim',      href: '/cart' },
-    ],
-  },
-];
-
-const DEFAULT_LEGAL: FooterLink[] = [
-  { label: 'Gizlilik Politikası', href: '/privacy' },
-  { label: 'Kullanım Koşulları',  href: '/terms' },
-  { label: 'KVKK',                href: '/kvkk' },
-];
-
 export default async function Footer() {
-  let s: Record<string, string> = {};
-  try { s = await api.settings.getAll(); } catch { /* use defaults */ }
+  let settings: Record<string, string> = {};
+  let categories: Awaited<ReturnType<typeof api.catalog.getCategories>> = [];
 
-  const storeName       = s['store.name']          || 'mağaza';
-  const description     = s['footer.description']  || "Türkiye'nin güvenilir online alışveriş platformu.";
-  const email           = s['footer.contact.email'] || '';
-  const phone           = s['footer.contact.phone'] || '';
-  const hours           = s['footer.contact.hours'] || '';
-  const copyright       = s['footer.copyright']    || 'Tüm hakları saklıdır.';
-  const footerBg        = s['footer.background']   || s['store.color.primary'] || '#111827';
-  const footerTextColor = s['footer.textColor']    || '#f8fafc';
-  const columns         = parseJson<FooterColumn[]>(s['footer.columns'], DEFAULT_COLUMNS);
-  const legal           = parseJson<FooterLink[]>(s['footer.legal'],   DEFAULT_LEGAL);
+  try {
+    [settings, categories] = await Promise.all([
+      api.settings.getAll(),
+      api.catalog.getCategories(),
+    ]);
+    categories = categories.filter((c) => c.isActive);
+  } catch { /* defaults */ }
 
-  const hasContact = email || phone || hours;
-  const totalCols  = columns.length + (hasContact ? 1 : 0) + 1; // +1 brand
-  const gridClass  = totalCols >= 4
-    ? 'sm:grid-cols-2 lg:grid-cols-4'
-    : totalCols === 3
-    ? 'sm:grid-cols-3'
-    : 'sm:grid-cols-2';
+  const data = buildFooterViewModel(settings, categories);
+
+  const mobileColumns = data.columns.map((col) => ({
+    ...col,
+    links: col.links.map((l) => ({
+      ...l,
+      href: resolveCategoryHref(l.href, categories),
+    })),
+  }));
 
   return (
-    <footer className="text-white" style={{ backgroundColor: footerBg, color: footerTextColor }}>
-      <div className={`container mx-auto grid gap-8 px-4 py-12 ${gridClass}`}>
+    <footer className="text-white" style={{ backgroundColor: data.footerBg, color: data.footerTextColor }}>
+      {data.showTrustBar && <FooterTrustBar items={data.trustItems} />}
 
-        {/* Brand */}
-        <div>
-          <span className="text-xl font-extrabold text-primary">{storeName}</span>
-          <p className="mt-3 text-sm leading-relaxed text-gray-400">{description}</p>
+      <div className="container mx-auto px-4 py-10 lg:py-12">
+        {/* Marka — mobil üst */}
+        <div className="mb-8 lg:mb-10">
+          <div className="max-w-sm">
+            <Link href="/" className="text-2xl font-extrabold text-white transition-opacity hover:opacity-90">
+              {data.storeName}
+            </Link>
+            <p className="mt-3 text-sm leading-relaxed text-white/70">{data.description}</p>
+            <div className="mt-4">
+              <FooterSocial instagram={data.socialInstagram} facebook={data.socialFacebook} />
+            </div>
+          </div>
         </div>
 
-        {/* Dynamic link columns */}
-        {columns.map((col) => (
-          <div key={col.title}>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white">{col.title}</h4>
-            <ul className="space-y-2 text-sm">
-              {col.links.map((l) => (
-                <li key={l.label}>
-                  <Link href={l.href} className="transition-colors hover:text-primary">{l.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {/* Mobil accordion */}
+        <FooterMobile
+          columns={mobileColumns}
+          email={data.email}
+          phone={data.phone}
+          phoneDigits={data.phoneDigits}
+          hours={data.hours}
+          address={data.address}
+          whatsappEnabled={data.whatsappEnabled}
+          newsletterEnabled={data.newsletterEnabled}
+          storeName={data.storeName}
+        />
 
-        {/* Contact */}
-        {hasContact && (
-          <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white">İletişim</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              {email && <li>📧 {email}</li>}
-              {phone && <li>📞 {phone}</li>}
-              {hours && <li>🕐 {hours}</li>}
-            </ul>
+        {/* Desktop grid */}
+        <div className="hidden lg:grid lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-3">
+            <FooterContact
+              email={data.email}
+              phone={data.phone}
+              phoneDigits={data.phoneDigits}
+              hours={data.hours}
+              address={data.address}
+              whatsappEnabled={data.whatsappEnabled}
+            />
           </div>
-        )}
+          {data.columns.map((col, i) => (
+            <div key={col.title} className="lg:col-span-2">
+              <DesktopColumn col={col} categories={categories} />
+            </div>
+          ))}
+          {data.newsletterEnabled && (
+            <div className="lg:col-span-3">
+              <FooterNewsletter storeName={data.storeName} />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-gray-800">
-        <div className="container mx-auto flex flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-gray-500 sm:flex-row">
-          <p>© {new Date().getFullYear()} {storeName}. {copyright}</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            {legal.map((l) => (
-              <Link key={l.label} href={l.href} className="hover:text-primary transition-colors">
+      <FooterSitemap links={data.sitemapLinks} />
+      <FooterPaymentBadges />
+
+      {data.etbisUrl && (
+        <div className="container mx-auto flex justify-center px-4 pb-4">
+          <a
+            href={data.etbisUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded border border-white/20 bg-white/5 px-4 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/10"
+          >
+            ETBİS Kayıtlıdır
+          </a>
+        </div>
+      )}
+
+      <div className="border-t border-white/10">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-white/50 sm:flex-row">
+          <p className="text-center sm:text-left">
+            © {new Date().getFullYear()} {data.storeName}. {data.copyright}
+          </p>
+          <nav className="flex flex-wrap justify-center gap-4">
+            {data.legal.map((l) => (
+              <Link key={l.label} href={l.href} className="transition-colors hover:text-white">
                 {l.label}
               </Link>
             ))}
-          </div>
+          </nav>
         </div>
       </div>
     </footer>

@@ -32,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     categoryRoutes = categories
       .filter((c) => c.isActive !== false)
       .map((c) => ({
-        url:             `${SITE_URL}/products?category=${c.id}`,
+        url:             `${SITE_URL}/products?category=${c.slug}`,
         lastModified:    now,
         changeFrequency: 'weekly' as const,
         priority:        0.7,

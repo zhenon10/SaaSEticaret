@@ -7,6 +7,7 @@ import CartBadge from './CartBadge';
 import FavoriteBadge from './FavoriteBadge';
 import CategoryFlyout from './CategoryFlyout';
 import { api } from '@/lib/api';
+import { resolveCategoryHref } from '@/lib/categories';
 import type { Category } from '@saas/api-client';
 
 const DEFAULT_NAV_LINKS = [
@@ -32,11 +33,16 @@ export default async function Header() {
     ]);
     if (settings['store.name']) storeName = settings['store.name'];
     const raw = settings['nav.links'];
+    categories = cats.filter((c) => c.isActive);
     if (raw) {
       const parsed = JSON.parse(raw) as { label: string; href: string }[];
-      if (Array.isArray(parsed) && parsed.length > 0) navLinks = parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        navLinks = parsed.map((item) => ({
+          ...item,
+          href: resolveCategoryHref(item.href, categories),
+        }));
+      }
     }
-    categories = cats.filter((c) => c.isActive);
   } catch {
     // fall back to defaults
   }
