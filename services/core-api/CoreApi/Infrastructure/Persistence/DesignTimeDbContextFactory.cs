@@ -15,13 +15,14 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddUserSecrets<DesignTimeDbContextFactory>(optional: true)
             .AddEnvironmentVariables()
             .Build();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException(
                 "Connection string 'DefaultConnection' not found. " +
-                "Ensure appsettings.json exists in the project root.");
+                "Set it with `dotnet user-secrets` or the ConnectionStrings__DefaultConnection environment variable.");
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseNpgsql(connectionString);
