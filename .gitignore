@@ -31,3 +31,6 @@ services/core-api/logs/
 # Untracked files
 tmpbuild/
 services/core-api/CoreApi/wwwroot/uploads/
+
+# Personal Claude Code settings
+.claude/settings.local.json
